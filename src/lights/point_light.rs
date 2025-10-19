@@ -1,7 +1,8 @@
 use glam::Vec3;
 
-use crate::{lights::light::Light, utils::transform::Transform};
+use crate::{lights::light::Light, opengl::program::Program, utils::transform::Transform};
 
+#[allow(dead_code)]
 pub struct PointLight {
   pub transform: Transform,
 
@@ -10,6 +11,7 @@ pub struct PointLight {
   pub ambient: Vec3,
 }
 
+#[allow(dead_code)]
 impl PointLight {
   pub fn new(diffuse: Vec3, specular: Vec3, ambient: Vec3) -> PointLight {
     PointLight {
@@ -21,6 +23,7 @@ impl PointLight {
   }
 }
 
+#[allow(dead_code)]
 impl Light for PointLight {
   fn get_transform(&self) -> &Transform { &self.transform }
   fn get_transform_mut(&mut self) -> &mut Transform { &mut self.transform }
@@ -30,5 +33,5 @@ impl Light for PointLight {
   fn get_ambient(&self) -> Vec3 { self.ambient }
 
   fn tick(&mut self) { }
-  fn draw(&self, renderer: &crate::opengl::renderer::Renderer) { }
+  fn draw(&self, _program: &Program) { }
 }

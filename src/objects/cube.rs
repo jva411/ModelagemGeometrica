@@ -1,5 +1,6 @@
-use crate::{objects::object::Object, opengl::{ebo::EBO, renderer::Renderer, vao::VAO, vbo::VBO}, utils::{material::{Material, BLANK}, transform::{self, Transform}}};
+use crate::{objects::object::Object, opengl::{ebo::EBO, program::Program, vao::VAO, vbo::VBO}, utils::{material::{Material, BLANK}, transform::Transform}};
 
+#[allow(dead_code)]
 pub struct Cube {
   pub transform: Transform,
   pub material: Material,
@@ -87,17 +88,17 @@ impl Cube {
 impl Object for Cube {
   fn get_transform(&self) -> &Transform { return &self.transform; }
   fn get_transform_mut(&mut self) -> &mut Transform { return &mut self.transform; }
-  fn get_material(&mut self) -> &mut Material { return &mut self.material; }
+  fn get_material(&self) -> &Material { return &self.material; }
 
   fn tick(&mut self) {}
 
-  fn draw(&self, renderer: &Renderer) {
+  fn draw(&self, program: &Program) {
     self.vao.bind();
     self.vbo.bind();
     self.ebo.bind();
 
-    self.transform.send_to_program(&renderer.current_program);
-    self.material.send_to_program(&renderer.current_program);
+    self.transform.send_to_program(&program);
+    self.material.send_to_program(&program);
 
     unsafe {
       gl::DrawElements(gl::TRIANGLES, INDICES.len() as i32, gl::UNSIGNED_INT, 0 as *const _);

@@ -1,10 +1,12 @@
 use glam::{Mat4, Vec4};
 
-use crate::{objects::instanced::instanced_object::InstacedObject, opengl::{ebo::EBO, renderer::{self, Renderer}, vao::VAO, vbo::VBO}, utils::{material::{Material, BLANK}, transform::{self, Transform}}};
+use crate::{objects::{instanced::instanced_object::InstacedObject, object::Object}, opengl::{ebo::EBO, program::Program, vao::VAO, vbo::VBO}, utils::{material::Material, transform::Transform}};
 
+#[allow(dead_code)]
 pub struct InstancedCube {
-  pub transforms: Vec<Transform>,
   pub material: Material,
+  pub transform: Transform,
+  pub instances_transforms: Vec<Transform>,
 
   pub vao: VAO,
   pub vbo: VBO,
@@ -60,9 +62,6 @@ const SKIPS: [u32; 2] = [0, 3 * SIZE_F32];
 
 impl InstancedCube {
   pub fn new(material: Option<Material>) -> Self {
-    let transforms = Vec::new();
-    let material = material.unwrap_or(BLANK);
-
     let vao = VAO::new();
     let vbo = VBO::new();
     let ebo = EBO::new();
@@ -79,20 +78,29 @@ impl InstancedCube {
     ebo.send_data(&INDICES);
 
     return Self {
-      transforms,
-      material,
+      instances_transforms: Vec::new(),
+      transform: Transform::new(),
+      material: material.unwrap_or_default(),
       vao,
       vbo,
       ebo,
       instance_vbo,
     };
   }
+}
 
-  pub fn setup_instances(&self) {
+impl InstacedObject for InstancedCube {
+  fn get_instances_count(&self) -> usize { self.instances_transforms.len() }
+  fn get_instances_transforms(&self) -> &Vec<Transform> { &self.instances_transforms }
+  fn get_instances_transforms_mut(&mut self) -> &mut Vec<Transform> { &mut self.instances_transforms }
+
+  fn add_instance(&mut self, transform: Transform) { self.instances_transforms.push(transform); }
+
+  fn setup_instances(&mut self) {
     self.vao.bind();
     self.instance_vbo.bind();
 
-    let models: Vec<Mat4> = self.transforms.iter().map(|t| t.build_model()).collect();
+    let models: Vec<Mat4> = self.instances_transforms.iter().map(|t| t.build_model()).collect();
 
     unsafe {
       gl::BufferData(
@@ -122,24 +130,23 @@ impl InstancedCube {
   }
 }
 
-impl InstacedObject for InstancedCube {
-  fn get_transform(&self) -> &Vec<Transform> { return &self.transforms; }
-  fn get_transform_mut(&mut self) -> &mut Vec<Transform> { return &mut self.transforms; }
-  fn get_material(&mut self) -> &mut Material { return &mut self.material; }
-
-  fn add_instance(&mut self, transform: Transform) { self.transforms.push(transform); }
+impl Object for InstancedCube {
+  fn get_transform(&self) -> &Transform { &self.transform }
+  fn get_transform_mut(&mut self) -> &mut Transform { &mut self.transform }
+  fn get_material(&self) -> &Material { &self.material }
 
   fn tick(&mut self) {}
 
-  fn draw(&self, renderer: &Renderer) {
+  fn draw(&self, program: &Program) {
     self.vao.bind();
     self.vbo.bind();
     self.ebo.bind();
 
-    self.material.send_to_program(&renderer.instanced_program);
+    self.material.send_to_program(program);
 
     unsafe {
-      gl::DrawElementsInstanced(gl::TRIANGLES, INDICES.len() as i32, gl::UNSIGNED_INT, 0 as *const _, self.transforms.len() as i32);
+      program.set_uniform_matrix4f("baseModel", self.transform.build_model()).expect("Failed to set baseModel uniform");
+      gl::DrawElementsInstanced(gl::TRIANGLES, INDICES.len() as i32, gl::UNSIGNED_INT, 0 as *const _, self.instances_transforms.len() as i32);
     }
   }
 }

@@ -9,12 +9,12 @@ use glam::Vec3;
 
 use crate::lights::point_light::PointLight;
 use crate::objects::cube::Cube;
-use crate::objects::instanced::instanced_cube::InstancedCube;
-use crate::objects::instanced::instanced_object::InstacedObject;
+use crate::objects::object::Object;
+use crate::objects::octree::octree_sphere::OctreeSphere;
 use crate::objects::triangle::Triangle;
+use crate::opengl::renderer::ProgramType;
 use crate::scene::window::Window;
 use crate::utils::material::Material;
-use crate::utils::transform::Transform;
 
 
 const SCENE_WIDTH: u32 = 800;
@@ -49,59 +49,16 @@ fn main() {
   // cube.transform.scale3f(1.0, 1.5, 0.7);
   // window.scene.add_object(Box::new(cube));
 
-  let divisions = 60;
-  let cube_size = 1.0 / (divisions as f32);
-
-  let outer_radius = 0.8;
-  let thickness = 0.05;
-  let inner_radius = outer_radius - thickness;
-
-  let scale = 0.5;
-  let translate = Vec3::new(0.0, 0.0, -3.0);
-  let spacing = 0.0;
-
-  let mut instanced_cube = InstancedCube::new(
-  Some(Material::new(
-    Vec3::splat(0.8),
-    Vec3::splat(1.0),
-    128.0
-  )));
-
-  for i in -divisions..=divisions {
-    for j in -divisions..=divisions {
-      for k in -divisions..=divisions {
-        let x = (i as f32) * cube_size;
-        let y = (j as f32) * cube_size;
-        let z = (k as f32) * cube_size;
-        let vec = Vec3::new(x, y, z);
-
-        let distance_from_center = vec.length();
-
-        if distance_from_center > outer_radius || distance_from_center < inner_radius {
-          continue;
-        }
-
-        // let mut cube = Cube::new(
-        //   None,
-        //   Some(Material::new(
-        //     Vec3::splat(0.8),
-        //     Vec3::splat(1.0),
-        //     128.0
-        //   ))
-        // );
-        // cube.transform.translatev3f(translate + vec * scale);
-        // cube.transform.scale3f(scale * cube_size * (1.0 - spacing), scale * cube_size * (1.0 - spacing), scale * cube_size * (1.0 - spacing));
-        // window.scene.add_object(Box::new(cube));
-
-        let mut transform = Transform::new();
-        transform.translatev3f(translate + vec * scale);
-        transform.scale3f(scale * cube_size * (1.0 - spacing), scale * cube_size * (1.0 - spacing), scale * cube_size * (1.0 - spacing));
-        instanced_cube.add_instance(transform);
-      }
-    }
-  }
-  instanced_cube.setup_instances();
-  window.scene.add_instanced_object(Box::new(instanced_cube));
+  let mut octree_sphere = OctreeSphere::new(
+    1.3,
+    7,
+    0.0,
+    None,
+  );
+  let transform = octree_sphere.get_transform_mut();
+  transform.translate3f(0.0, 0.0, -4.0);
+  println!("OctreeSphere instances: {}", octree_sphere.instanced_cube.as_ref().unwrap().instances_transforms.len());
+  window.scene.add_object(ProgramType::Instanced, Box::new(octree_sphere));
 
   let mut l0 = PointLight::new(
     Vec3::from([1.0, 1.0, 1.0]),

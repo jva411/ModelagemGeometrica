@@ -1,14 +1,16 @@
 use glam::{Mat4, Quat, Vec3};
 use std::f32::consts::PI;
 
-use crate::opengl::{program::Program, renderer::Renderer};
+use crate::opengl::program::Program;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub enum Projection {
   Perspective,
   Orthographic,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub struct CameraTransform {
   pub position: Vec3,
@@ -18,6 +20,7 @@ pub struct CameraTransform {
   pub roll: f32,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
 pub struct Camera {
   pub transform: CameraTransform,
@@ -28,6 +31,7 @@ pub struct Camera {
   pub projection: Projection,
 }
 
+#[allow(dead_code)]
 impl Camera {
   pub fn new() -> Self {
     Camera {
@@ -69,6 +73,7 @@ impl Camera {
   }
 }
 
+#[allow(dead_code)]
 impl CameraTransform {
   pub fn new() -> Self {
     return CameraTransform {

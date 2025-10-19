@@ -1,9 +1,11 @@
+#[allow(dead_code)]
 pub struct FBO {
     pub id: u32,
     pub texture_id: u32,
     pub rbo_id: u32,
 }
 
+#[allow(dead_code)]
 impl FBO {
     pub fn new() -> FBO {
         let mut fbo = FBO {

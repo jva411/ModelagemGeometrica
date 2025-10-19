@@ -30,3 +30,9 @@ impl Material {
     program.set_uniform1f("material.shininess", self.shininess).unwrap();
   }
 }
+
+impl Default for Material {
+  fn default() -> Self {
+    BLANK
+  }
+}

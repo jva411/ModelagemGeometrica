@@ -134,8 +134,7 @@ impl Window {
       }
 
       // Render scene
-      let renderer = self.renderer.borrow();
-      renderer.clear(self.canvas_width, self.height);
+      self.renderer.borrow().clear(self.canvas_width, self.height);
       self.scene.tick();
       self.scene.draw();
 

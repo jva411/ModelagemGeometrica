@@ -1,5 +1,6 @@
-use crate::{objects::object::Object, opengl::{renderer::Renderer, vao::VAO, vbo::VBO}, utils::{material::{Material, BLANK}, transform::Transform}};
+use crate::{objects::object::Object, opengl::{program::Program, vao::VAO, vbo::VBO}, utils::{material::{Material, BLANK}, transform::Transform}};
 
+#[allow(dead_code)]
 pub struct Triangle {
   pub transform: Transform,
   pub material: Material,
@@ -41,14 +42,14 @@ impl Triangle {
 impl Object for Triangle {
   fn get_transform(&self) -> &Transform { return &self.transform; }
   fn get_transform_mut(&mut self) -> &mut Transform { return &mut self.transform; }
-  fn get_material(&mut self) -> &mut Material { return &mut self.material; }
+  fn get_material(&self) -> &Material { return &self.material; }
 
-  fn draw(&self, renderer: &Renderer) {
+  fn draw(&self, program: &Program) {
     self.vao.bind();
     self.vbo.bind();
 
-    self.transform.send_to_program(&renderer.current_program);
-    self.material.send_to_program(&renderer.current_program);
+    self.transform.send_to_program(&program);
+    self.material.send_to_program(&program);
 
     unsafe {
       gl::DrawArrays(gl::TRIANGLES, 0, 3);

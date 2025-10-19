@@ -1,12 +1,20 @@
-use std::{fs::File};
+use std::{fs::File, rc::Rc};
 
 use crate::opengl::{program::Program, shaders::Shaders};
 
-pub struct Renderer {
-  pub current_program: Program,
-  pub instanced_program: Program,
+#[allow(dead_code)]
+pub enum ProgramType {
+  Common,
+  Instanced,
 }
 
+#[allow(dead_code)]
+pub struct Renderer {
+  pub programs: [Rc<Program>; 2],
+  pub current_program: Rc<Program>,
+}
+
+#[allow(dead_code)]
 impl Renderer {
   pub fn new() -> Option<Self> {
     let triangle_vertex_shader_file = File::open("assets/shaders/triangle/vertex.glsl").expect("Failed to open triangle vertex shader file");
@@ -19,14 +27,23 @@ impl Renderer {
     let instanced_shaders = Shaders::from_files(&triangle_instanced_vertex_shader_file, &triangle_instanced_fragment_shader_file)?;
     let instanced_program = Program::new(instanced_shaders);
 
+    let current_program = Rc::new(program);
     return Some(Renderer {
-      current_program: program,
-      instanced_program,
+      programs: [current_program.clone(), Rc::new(instanced_program)],
+      current_program,
     });
   }
 
-  pub fn bind_program(&self, program: &Program) {
-    program.bind();
+  pub fn bind_program(&mut self, program_type: ProgramType) {
+    let program_ref = &self.programs[program_type as usize];
+    program_ref.bind();
+    self.current_program = program_ref.clone();
+  }
+
+  pub fn bind_program_by_index(&mut self, index: usize) {
+    let program_ref = &self.programs[index];
+    program_ref.bind();
+    self.current_program = program_ref.clone();
   }
 
   pub fn clear(&self, width: u32, height: u32) {

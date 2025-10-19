@@ -61,3 +61,7 @@ impl Transform {
     program.set_uniform_matrix4f(&format!("models[{}]", index), self.build_model()).unwrap();
   }
 }
+
+impl Default for Transform {
+  fn default() -> Self { Self::new() }
+}

@@ -1,7 +1,9 @@
+#[allow(dead_code)]
 pub struct EBO {
   pub id: u32,
 }
 
+#[allow(dead_code)]
 impl EBO {
   pub fn new() -> Self {
     let mut id = 0;

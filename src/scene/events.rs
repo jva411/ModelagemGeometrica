@@ -34,6 +34,7 @@ impl EventsManager {
   }
 }
 
+#[allow(dead_code)]
 impl Window {
   pub fn proccess_events(&mut self) -> EventResult {
     let events: Vec<Event> = self.sdl.event_pump.poll_iter().collect();
@@ -73,7 +74,7 @@ impl Window {
   }
 
   fn on_mouse_wheel(&mut self, y: i32) -> EventResult {
-    self.events_manager.camera_speed = (self.events_manager.camera_speed + y as f32 / 10.0).clamp(0.2, 30.0);
+    self.events_manager.camera_speed = (self.events_manager.camera_speed * (1.0 + y as f32 / 30.0)).clamp(0.2, 100.0);
     return EventResult::None;
   }
 
@@ -88,11 +89,11 @@ impl Window {
   }
 
   fn on_mouse_motion(&mut self, xrel: i32, yrel: i32) -> EventResult {
-    const camera_sensitivity: f32 = 0.5;
+    const CAMERA_SENSITIVITY: f32 = 0.5;
 
     if self.events_manager.buttons_pressed.contains(&MouseButton::Left) {
-      self.scene.camera.transform.add_yaw((-xrel as f32 * camera_sensitivity).to_radians());
-      self.scene.camera.transform.add_pitch((-yrel as f32 * camera_sensitivity).to_radians());
+      self.scene.camera.transform.add_yaw((-xrel as f32 * CAMERA_SENSITIVITY).to_radians());
+      self.scene.camera.transform.add_pitch((-yrel as f32 * CAMERA_SENSITIVITY).to_radians());
     }
     return EventResult::None;
   }
