@@ -38,7 +38,7 @@ impl Camera {
       transform: CameraTransform::new(),
       fov: 45.0,
       aspect: 8.0/6.0,
-      near: 0.1,
+      near: 0.01,
       far: 100.0,
       projection: Projection::Perspective,
     }

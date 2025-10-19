@@ -3,9 +3,9 @@ use glam::Vec3;
 use crate::{objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{OctreeNode, OctreeNodeType, OctreeObject, AABB}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
-pub struct OctreeSphere {
+pub struct OctreeCube {
   pub material: Material,
-  pub radius: f32,
+  pub size: Vec3,
   pub max_depth: u32,
   pub spacing: f32,
   pub root: Option<OctreeNode>,
@@ -13,17 +13,16 @@ pub struct OctreeSphere {
 }
 
 #[allow(dead_code)]
-impl OctreeSphere {
+impl OctreeCube {
   pub fn new(
-    radius: f32,
+    size: Vec3,
     max_depth: u32,
     spacing: f32,
     material: Option<Material>,
   ) -> Self {
-
-    let mut object = OctreeSphere {
+    let mut object = OctreeCube {
       material: material.unwrap_or_default(),
-      radius,
+      size,
       max_depth,
       spacing,
       root: None,
@@ -38,59 +37,47 @@ impl OctreeSphere {
   }
 }
 
-impl OctreeObject for OctreeSphere {
+impl OctreeObject for OctreeCube {
   fn get_bounding_box(&self) -> AABB {
-    let min = -Vec3::splat(self.radius);
-    let max = Vec3::splat(self.radius);
-    super::octree_object::AABB { min, max }
+    let half_size = self.size / 2.0;
+    AABB {
+      min: -half_size,
+      max: half_size,
+    }
   }
 
-  fn get_node_type(&self, aabb: &super::octree_object::AABB) -> OctreeNodeType {
-    let radius_sq = self.radius * self.radius;
-
-    let mut dist_sq_closest = 0.0;
-    for i in 0..3 {
-      if aabb.min[i] > 0.0 {
-        dist_sq_closest += aabb.min[i] * aabb.min[i];
-      } else if aabb.max[i] < 0.0 {
-        dist_sq_closest += aabb.max[i] * aabb.max[i];
-      }
-    }
-
-    if dist_sq_closest > radius_sq {
-      return OctreeNodeType::OUT;
-    }
-
-    let mut dist_sq_farthest = 0.0;
-    for i in 0..3 {
-      let farthest_coord = aabb.min[i].abs().max(aabb.max[i].abs());
-      dist_sq_farthest += farthest_coord * farthest_coord;
-    }
-
-    if dist_sq_farthest <= radius_sq {
+  fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType {
+    let half_size = self.size / 2.0;
+    if aabb.max.x <= half_size.x && aabb.min.x >= -half_size.x &&
+      aabb.max.y <= half_size.y && aabb.min.y >= -half_size.y &&
+      aabb.max.z <= half_size.z && aabb.min.z >= -half_size.z {
       return OctreeNodeType::IN;
     }
 
-    return OctreeNodeType::PARTIAL;
+    OctreeNodeType::PARTIAL
   }
 
   fn generate_instanced_cube(&mut self) {
     let mut instanced_cube = InstancedCube::new(Some(self.material.clone()));
 
-    let root = self.root.as_ref().unwrap();
-    root.generate_transforms(self.spacing, instanced_cube.get_instances_transforms_mut());
+    if let Some(root) = self.root.as_ref() {
+      root.generate_transforms(
+        self.spacing,
+        instanced_cube.get_instances_transforms_mut(),
+      );
+    }
 
     instanced_cube.setup_instances();
     self.instanced_cube = Some(instanced_cube);
   }
 }
 
-impl Object for OctreeSphere {
+impl Object for OctreeCube {
   fn get_transform(&self) -> &Transform { &self.instanced_cube.as_ref().unwrap().transform }
   fn get_transform_mut(&mut self) -> &mut Transform { &mut self.instanced_cube.as_mut().unwrap().transform }
   fn get_material(&self) -> &Material { &self.material }
 
-  fn tick(&mut self) { }
+  fn tick(&mut self) {}
 
   fn draw(&self, program: &Program) { self.instanced_cube.as_ref().unwrap().draw(program); }
 }

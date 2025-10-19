@@ -6,6 +6,7 @@ use crate::{objects::object::Object, utils::transform::Transform};
 pub trait OctreeObject: Object {
   fn get_bounding_box(&self) -> AABB;
   fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType;
+
   fn generate_instanced_cube(&mut self);
 }
 
@@ -39,6 +40,10 @@ impl OctreeNode {
 
   pub fn generate_octree(object: &dyn OctreeObject, max_depth: u32) -> Self {
     let root_aabb = object.get_bounding_box();
+    let min = root_aabb.min.min_element();
+    let max = root_aabb.max.max_element();
+
+    let root_aabb = AABB { min: Vec3::splat(min), max: Vec3::splat(max) };
     let mut root_node = OctreeNode::new(root_aabb, OctreeNodeType::PARTIAL);
     OctreeNode::subdivide_node(object, &mut root_node, 0, max_depth);
 

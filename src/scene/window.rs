@@ -134,6 +134,9 @@ impl Window {
       }
 
       // Render scene
+
+      // let total_elapsed = start_time.elapsed().as_secs_f32();
+      self.scene.objects[1][0].as_mut().get_transform_mut().rotate_z(self.delta_time * 45.0_f32.to_radians());
       self.renderer.borrow().clear(self.canvas_width, self.height);
       self.scene.tick();
       self.scene.draw();

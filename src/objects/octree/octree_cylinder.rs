@@ -3,9 +3,10 @@ use glam::Vec3;
 use crate::{objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{OctreeNode, OctreeNodeType, OctreeObject, AABB}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
-pub struct OctreeSphere {
+pub struct OctreeCylinder {
   pub material: Material,
   pub radius: f32,
+  pub height: f32,
   pub max_depth: u32,
   pub spacing: f32,
   pub root: Option<OctreeNode>,
@@ -13,17 +14,18 @@ pub struct OctreeSphere {
 }
 
 #[allow(dead_code)]
-impl OctreeSphere {
+impl OctreeCylinder {
   pub fn new(
     radius: f32,
+    height: f32,
     max_depth: u32,
     spacing: f32,
     material: Option<Material>,
   ) -> Self {
-
-    let mut object = OctreeSphere {
+    let mut object = OctreeCylinder {
       material: material.unwrap_or_default(),
       radius,
+      height,
       max_depth,
       spacing,
       root: None,
@@ -38,36 +40,42 @@ impl OctreeSphere {
   }
 }
 
-impl OctreeObject for OctreeSphere {
+impl OctreeObject for OctreeCylinder {
   fn get_bounding_box(&self) -> AABB {
-    let min = -Vec3::splat(self.radius);
-    let max = Vec3::splat(self.radius);
-    super::octree_object::AABB { min, max }
+    let min = Vec3::new(-self.radius, -self.height / 2.0, -self.radius);
+    let max = Vec3::new(self.radius, self.height / 2.0, self.radius);
+    AABB { min, max }
   }
 
-  fn get_node_type(&self, aabb: &super::octree_object::AABB) -> OctreeNodeType {
+  fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType {
     let radius_sq = self.radius * self.radius;
+    let half_height = self.height / 2.0;
+
+    if aabb.min.y > half_height || aabb.max.y < -half_height {
+      return OctreeNodeType::OUT;
+    }
 
     let mut dist_sq_closest = 0.0;
-    for i in 0..3 {
-      if aabb.min[i] > 0.0 {
-        dist_sq_closest += aabb.min[i] * aabb.min[i];
-      } else if aabb.max[i] < 0.0 {
-        dist_sq_closest += aabb.max[i] * aabb.max[i];
-      }
+    if aabb.min.x > 0.0 {
+      dist_sq_closest += aabb.min.x * aabb.min.x;
+    } else if aabb.max.x < 0.0 {
+      dist_sq_closest += aabb.max.x * aabb.max.x;
+    }
+
+    if aabb.min.z > 0.0 {
+      dist_sq_closest += aabb.min.z * aabb.min.z;
+    } else if aabb.max.z < 0.0 {
+      dist_sq_closest += aabb.max.z * aabb.max.z;
     }
 
     if dist_sq_closest > radius_sq {
       return OctreeNodeType::OUT;
     }
 
-    let mut dist_sq_farthest = 0.0;
-    for i in 0..3 {
-      let farthest_coord = aabb.min[i].abs().max(aabb.max[i].abs());
-      dist_sq_farthest += farthest_coord * farthest_coord;
-    }
+    let dist_sq_farthest_xz = aabb.min.x.abs().max(aabb.max.x.abs()).powi(2)
+      + aabb.min.z.abs().max(aabb.max.z.abs()).powi(2);
 
-    if dist_sq_farthest <= radius_sq {
+    if dist_sq_farthest_xz <= radius_sq && aabb.min.y >= -half_height && aabb.max.y <= half_height {
       return OctreeNodeType::IN;
     }
 
@@ -85,12 +93,12 @@ impl OctreeObject for OctreeSphere {
   }
 }
 
-impl Object for OctreeSphere {
+impl Object for OctreeCylinder {
   fn get_transform(&self) -> &Transform { &self.instanced_cube.as_ref().unwrap().transform }
   fn get_transform_mut(&mut self) -> &mut Transform { &mut self.instanced_cube.as_mut().unwrap().transform }
   fn get_material(&self) -> &Material { &self.material }
 
-  fn tick(&mut self) { }
+  fn tick(&mut self) {}
 
   fn draw(&self, program: &Program) { self.instanced_cube.as_ref().unwrap().draw(program); }
 }
