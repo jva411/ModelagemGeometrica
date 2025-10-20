@@ -1,9 +1,13 @@
 use glam::{Mat4, Vec4};
+use uuid::Uuid;
 
 use crate::{objects::{instanced::instanced_object::InstacedObject, object::Object}, opengl::{ebo::EBO, program::Program, vao::VAO, vbo::VBO}, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
 pub struct InstancedCube {
+  pub id: Uuid,
+  pub name: String,
+
   pub material: Material,
   pub transform: Transform,
   pub instances_transforms: Vec<Transform>,
@@ -78,6 +82,8 @@ impl InstancedCube {
     ebo.send_data(&INDICES);
 
     return Self {
+      id: Uuid::new_v4(),
+      name: "Instanced Cube".to_string(),
       instances_transforms: Vec::new(),
       transform: Transform::new(),
       material: material.unwrap_or_default(),
@@ -131,6 +137,10 @@ impl InstacedObject for InstancedCube {
 }
 
 impl Object for InstancedCube {
+  fn get_id(&self) -> Uuid { self.id }
+  fn get_name(&self) -> String { self.name.clone() }
+  fn get_name_mut(&mut self) -> &mut String { &mut self.name }
+
   fn get_transform(&self) -> &Transform { &self.transform }
   fn get_transform_mut(&mut self) -> &mut Transform { &mut self.transform }
   fn get_material(&self) -> &Material { &self.material }

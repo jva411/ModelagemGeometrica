@@ -1,9 +1,12 @@
 use glam::Vec3;
+use uuid::Uuid;
 
 use crate::{objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{OctreeNode, OctreeNodeType, OctreeObject, AABB}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
 pub struct OctreeCube {
+  pub id: Uuid,
+  pub name: String,
   pub material: Material,
   pub size: Vec3,
   pub max_depth: u32,
@@ -21,6 +24,8 @@ impl OctreeCube {
     material: Option<Material>,
   ) -> Self {
     let mut object = OctreeCube {
+      id: Uuid::new_v4(),
+      name: "Octree Cube".to_string(),
       material: material.unwrap_or_default(),
       size,
       max_depth,
@@ -73,6 +78,10 @@ impl OctreeObject for OctreeCube {
 }
 
 impl Object for OctreeCube {
+  fn get_id(&self) -> Uuid { self.id }
+  fn get_name(&self) -> String { self.name.clone() }
+  fn get_name_mut(&mut self) -> &mut String { &mut self.name }
+
   fn get_transform(&self) -> &Transform { &self.instanced_cube.as_ref().unwrap().transform }
   fn get_transform_mut(&mut self) -> &mut Transform { &mut self.instanced_cube.as_mut().unwrap().transform }
   fn get_material(&self) -> &Material { &self.material }

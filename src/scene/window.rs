@@ -1,10 +1,9 @@
-use std::{cell::RefCell, rc::Rc, time::Instant};
+use std::{cell::RefCell, rc::Rc, sync::Arc, time::Instant};
 
-use egui::{Checkbox, FullOutput, SidePanel};
 use sdl2::video::{GLProfile, SwapInterval};
 use egui_sdl2_gl::{self as egui_backend, DpiScaling, ShaderVersion};
 
-use crate::{opengl::renderer::Renderer, scene::{events::{EventResult, EventsManager}, scene::Scene}, utils::camera::Camera};
+use crate::{opengl::renderer::Renderer, scene::{events::{EventResult, EventsManager}, scene::Scene, ui::UIManager}, utils::camera::Camera};
 
 #[allow(dead_code)]
 pub struct SdlContext {
@@ -33,9 +32,11 @@ pub struct Window {
   pub scene: Scene,
 
   pub delta_time: f32,
+  pub elapsed_time: f32,
   pub sdl: SdlContext,
   pub egui: EguiContext,
   pub events_manager: EventsManager,
+  pub ui_manager: UIManager,
 }
 
 impl Window {
@@ -54,9 +55,11 @@ impl Window {
       scene,
 
       delta_time: 0.0,
+      elapsed_time: 0.0,
       sdl,
       egui,
       events_manager,
+      ui_manager: UIManager::new(),
     };
 
     return window;
@@ -103,88 +106,38 @@ impl Window {
       state: egui_state,
     };
 
+    sdl.video_subsystem.gl_set_swap_interval(SwapInterval::VSync).unwrap();
+
     return (sdl, egui);
   }
 
   pub fn init(&mut self) {
-    // UI interactive values
-    let mut test_str: String = "A text box to write in. Cut, copy, paste commands are available.".to_owned();
-    let mut enable_vsync = true;
-    let mut quit = false;
-    let mut slider = 0.0;
-
     let start_time = Instant::now();
     let mut last_time = start_time.clone();
 
-    // Main loop
     'running: loop {
       let event_result = self.proccess_events();
       match event_result {
-        EventResult::Quit => {
-          break 'running;
-        }
+        EventResult::Quit => break 'running,
         EventResult::None => {}
       }
 
-      // 1. Limpa a tela inteira com uma cor de fundo.
-      // Egui irá desenhar sobre esta cor na sua área.
       unsafe {
         gl::ClearColor(0.1, 0.1, 0.1, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT);
       }
 
       // Render scene
-
-      // let total_elapsed = start_time.elapsed().as_secs_f32();
-      self.scene.objects[1][0].as_mut().get_transform_mut().rotate_z(self.delta_time * 45.0_f32.to_radians());
       self.renderer.borrow().clear(self.canvas_width, self.height);
       self.scene.tick();
       self.scene.draw();
 
-      // 3. Prepara e constrói a UI do Egui
-      unsafe {
-        gl::Disable(gl::DEPTH_TEST);
-        gl::Disable(gl::CULL_FACE);
-      }
-      self.egui.state.input.time = Some(start_time.elapsed().as_secs_f64());
-      self.egui.context.begin_pass(self.egui.state.input.take());
+      // Render UI
+      self.draw_ui();
 
-      // Cria um painel na direita com uma largura fixa.
-      SidePanel::right("painel_controles")
-        .resizable(false)
-        .exact_width((self.width - self.canvas_width) as f32)
-        .show(&self.egui.context, |ui| {
-          ui.heading("Controles");
-          ui.separator();
-          ui.text_edit_multiline(&mut test_str);
-          ui.add(egui::Slider::new(&mut slider, 0.0..=50.0).text("Slider"));
-          if ui.add(Checkbox::new(&mut enable_vsync, "VSync")).clicked() {
-            let interval = if enable_vsync { SwapInterval::VSync } else { SwapInterval::Immediate };
-            self.sdl.video_subsystem.gl_set_swap_interval(interval).unwrap();
-          }
-          ui.separator();
-          if ui.button("Sair").clicked() {
-            quit = true;
-          }
-        });
-
-      let FullOutput { platform_output, textures_delta, shapes, pixels_per_point, .. } = self.egui.context.end_pass();
-      self.egui.state.process_output(&self.sdl.window, &platform_output);
-
-      // 4. Pinta a UI do Egui sobre o que já foi desenhado.
-      // O painter do egui irá configurar seu próprio viewport e scissor test,
-      // então não precisamos nos preocupar com isso.
-      let paint_jobs = self.egui.context.tessellate(shapes, pixels_per_point);
-      self.egui.painter.paint_jobs(None, textures_delta, paint_jobs);
-
-      // 5. Troca o buffer da janela UMA VEZ no final do frame.
       self.sdl.window.gl_swap_window();
-
-      if quit {
-        break;
-      }
-
       self.delta_time = last_time.elapsed().as_secs_f32();
+      self.elapsed_time = start_time.elapsed().as_secs_f32();
       last_time = Instant::now();
     }
   }

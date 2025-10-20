@@ -5,6 +5,9 @@ mod scene;
 mod utils;
 
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use glam::Vec3;
 
 use crate::lights::point_light::PointLight;
@@ -22,7 +25,7 @@ use crate::utils::transform;
 
 
 const SCENE_WIDTH: u32 = 800;
-const UI_WIDTH: u32 = 300;
+const UI_WIDTH: u32 = 350;
 const WINDOW_HEIGHT: u32 = 600;
 const WINDOW_WIDTH: u32 = SCENE_WIDTH + UI_WIDTH;
 
@@ -76,17 +79,17 @@ fn main() {
   // println!("OctreeCylinder instances: {}", octree_cylinder.instanced_cube.as_ref().unwrap().instances_transforms.len());
   // window.scene.add_object(ProgramType::Instanced, Box::new(octree_cylinder));
 
-  let mut octree_cone = OctreeCone::new(
-    0.7,
-    2.5,
-    7,
-    0.0,
-    None,
-  );
-  let transform = octree_cone.get_transform_mut();
-  transform.translate3f(0.0, 0.0, -4.0);
-  println!("OctreeCone instances: {}", octree_cone.instanced_cube.as_ref().unwrap().instances_transforms.len());
-  window.scene.add_object(ProgramType::Instanced, Box::new(octree_cone));
+  // let mut octree_cone = OctreeCone::new(
+  //   0.7,
+  //   2.5,
+  //   7,
+  //   0.4,
+  //   None,
+  // );
+  // let transform = octree_cone.get_transform_mut();
+  // transform.translate3f(0.0, 0.0, -4.0);
+  // println!("OctreeCone instances: {}", octree_cone.instanced_cube.as_ref().unwrap().instances_transforms.len());
+  // window.scene.add_object(ProgramType::Instanced, Rc::new(RefCell::new(octree_cone)));
 
   // let mut octree_cube = OctreeCube::new(
   //   Vec3::from([1.0, 1.5, 1.0]),
@@ -102,7 +105,7 @@ fn main() {
   let mut l0 = PointLight::new(
     Vec3::from([1.0, 1.0, 1.0]),
     Vec3::from([0.4, 0.4, 0.4]),
-    Vec3::from([0.2, 0.2, 0.2]),
+    Vec3::from([0.3, 0.3, 0.3]),
   );
   l0.transform.translate3f(-0.5, 1.0, 0.0);
   window.scene.add_light(Box::new(l0));

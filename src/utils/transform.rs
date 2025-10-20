@@ -3,9 +3,32 @@ use glam::{Mat4, Quat, Vec3};
 use crate::opengl::program::Program;
 
 #[derive(Debug, Copy, Clone)]
+pub struct Rotation {
+  pub yaw: f32,
+  pub pitch: f32,
+  pub roll: f32,
+}
+
+impl Rotation {
+  pub fn new() -> Self {
+    Rotation {
+      yaw: 0.0,
+      pitch: 0.0,
+      roll: 0.0,
+    }
+  }
+
+  pub fn to_quat(&self) -> Quat {
+    Quat::from_axis_angle(Vec3::Y, self.yaw)
+      * Quat::from_axis_angle(Vec3::X, self.pitch)
+      * Quat::from_axis_angle(Vec3::Z, self.roll)
+  }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct Transform {
   pub translation: Vec3,
-  pub rotation: Quat,
+  pub rotation: Rotation,
   pub scale: Vec3,
 }
 
@@ -14,7 +37,7 @@ impl Transform {
   pub fn new() -> Self {
     Transform {
       translation: Vec3::ZERO,
-      rotation: Quat::IDENTITY,
+      rotation: Rotation::new(),
       scale: Vec3::ONE,
     }
   }
@@ -33,24 +56,18 @@ impl Transform {
     self.scale *= Vec3::new(v.x, v.y, v.z);
   }
 
-  pub fn rotate3f(&mut self, x: f32, y: f32, z: f32) {
-    self.rotation = Quat::from_rotation_x(x) * self.rotation;
-    self.rotation = Quat::from_rotation_y(y) * self.rotation;
-    self.rotation = Quat::from_rotation_z(z) * self.rotation;
+  pub fn add_yaw(&mut self, radians: f32) {
+    self.rotation.yaw += radians;
   }
-
-  pub fn rotate_x(&mut self, x: f32) {
-    self.rotation = Quat::from_rotation_x(x) * self.rotation;
+  pub fn add_pitch(&mut self, radians: f32) {
+    self.rotation.pitch += radians;
   }
-  pub fn rotate_y(&mut self, y: f32) {
-    self.rotation = Quat::from_rotation_y(y) * self.rotation;
-  }
-  pub fn rotate_z(&mut self, z: f32) {
-    self.rotation = Quat::from_rotation_z(z) * self.rotation;
+  pub fn add_roll(&mut self, radians: f32) {
+    self.rotation.roll += radians;
   }
 
   pub fn build_model(&self) -> Mat4 {
-    Mat4::from_scale_rotation_translation(self.scale, self.rotation, self.translation)
+    Mat4::from_scale_rotation_translation(self.scale, self.rotation.to_quat(), self.translation)
   }
 
   pub fn send_to_program(&self, program: &Program) {

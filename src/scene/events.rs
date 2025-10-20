@@ -91,7 +91,7 @@ impl Window {
   fn on_mouse_motion(&mut self, xrel: i32, yrel: i32) -> EventResult {
     const CAMERA_SENSITIVITY: f32 = 0.5;
 
-    if self.events_manager.buttons_pressed.contains(&MouseButton::Left) {
+    if self.events_manager.buttons_pressed.contains(&MouseButton::Middle) {
       self.scene.camera.transform.add_yaw((-xrel as f32 * CAMERA_SENSITIVITY).to_radians());
       self.scene.camera.transform.add_pitch((-yrel as f32 * CAMERA_SENSITIVITY).to_radians());
     }

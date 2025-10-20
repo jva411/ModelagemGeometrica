@@ -1,7 +1,12 @@
+use uuid::Uuid;
+
 use crate::{objects::object::Object, opengl::{ebo::EBO, program::Program, vao::VAO, vbo::VBO}, utils::{material::{Material, BLANK}, transform::Transform}};
 
 #[allow(dead_code)]
 pub struct Cube {
+  pub id: Uuid,
+  pub name: String,
+
   pub transform: Transform,
   pub material: Material,
 
@@ -76,6 +81,8 @@ impl Cube {
     ebo.send_data(&INDICES);
 
     return Self {
+      id: Uuid::new_v4(),
+      name: "Cube".to_string(),
       transform,
       material,
       vao,
@@ -86,9 +93,13 @@ impl Cube {
 }
 
 impl Object for Cube {
-  fn get_transform(&self) -> &Transform { return &self.transform; }
-  fn get_transform_mut(&mut self) -> &mut Transform { return &mut self.transform; }
-  fn get_material(&self) -> &Material { return &self.material; }
+  fn get_id(&self) -> Uuid { self.id }
+  fn get_name(&self) -> String { self.name.clone() }
+  fn get_name_mut(&mut self) -> &mut String { &mut self.name }
+
+  fn get_transform(&self) -> &Transform { &self.transform }
+  fn get_transform_mut(&mut self) -> &mut Transform { &mut self.transform }
+  fn get_material(&self) -> &Material { &self.material }
 
   fn tick(&mut self) {}
 
