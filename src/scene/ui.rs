@@ -4,7 +4,7 @@ use egui::{vec2, ComboBox, FullOutput, SidePanel, Ui, Window as EguiWindow};
 use glam::Vec3;
 use uuid::Uuid;
 
-use crate::{objects::{object::Object, octree::{octree_cone::OctreeCone, octree_cube::OctreeCube, octree_cylinder::OctreeCylinder, octree_sphere::OctreeSphere}}, opengl::renderer::ProgramType, scene::{scene::Scene, window::Window}};
+use crate::{objects::{object::Object, octree::{octree_boolean::{BooleanOperator, OctreeBoolean}, octree_cone::OctreeCone, octree_cube::OctreeCube, octree_cylinder::OctreeCylinder, octree_sphere::OctreeSphere}}, opengl::renderer::ProgramType, scene::{scene::Scene, window::Window}};
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum UITab {
@@ -58,6 +58,9 @@ pub struct UIManager {
   pub new_object_type: ObjectType,
   pub new_octree_primitive: OctreePrimitive,
   pub new_object_properties: NewObjectProperties,
+
+  pub boolean_operator: BooleanOperator,
+  pub selected_boolean_object_id: Option<Uuid>,
 }
 
 impl UIManager {
@@ -69,6 +72,8 @@ impl UIManager {
       new_object_type: ObjectType::Octree,
       new_octree_primitive: OctreePrimitive::Sphere,
       new_object_properties: NewObjectProperties::default(),
+      boolean_operator: BooleanOperator::UNION,
+      selected_boolean_object_id: None,
     }
   }
 }
@@ -148,47 +153,100 @@ impl Window {
       return;
     };
 
-    let Some(object_rc) = scene.objects_by_id.get_mut(&selected_id) else {
+    let Some(object_rc) = scene.objects_by_id.get(&selected_id).cloned() else {
       ui_manager.selected_object_id = None;
       return;
     };
 
-    let mut object = object_rc.borrow_mut();
+    {
+      let mut object = object_rc.borrow_mut();
 
-    ui.heading("Name");
-    ui.add(egui::TextEdit::singleline(object.get_name_mut()));
-    ui.separator();
+      ui.heading("Name");
+      ui.add(egui::TextEdit::singleline(object.get_name_mut()));
+      ui.separator();
 
-    let transform = object.get_transform_mut();
-    ui.heading("Translation");
-    ui.horizontal(|ui| {
-      ui.label("X: ");
-      ui.add(egui::DragValue::new(&mut transform.translation.x).speed(0.1));
-      ui.label("Y: ");
-      ui.add(egui::DragValue::new(&mut transform.translation.y).speed(0.1));
-      ui.label("Z: ");
-      ui.add(egui::DragValue::new(&mut transform.translation.z).speed(0.1));
-    });
+      let transform = object.get_transform_mut();
+      ui.heading("Translation");
+      ui.horizontal(|ui| {
+        ui.label("X: ");
+        ui.add(egui::DragValue::new(&mut transform.translation.x).speed(0.1));
+        ui.label("Y: ");
+        ui.add(egui::DragValue::new(&mut transform.translation.y).speed(0.1));
+        ui.label("Z: ");
+        ui.add(egui::DragValue::new(&mut transform.translation.z).speed(0.1));
+      });
 
-    ui.heading("Rotation");
-    ui.horizontal(|ui| {
-      ui.label("Yaw: ");
-      ui.add(egui::DragValue::new(&mut transform.rotation.yaw).speed(0.1));
-      ui.label("Pitch: ");
-      ui.add(egui::DragValue::new(&mut transform.rotation.pitch).speed(0.1));
-      ui.label("Roll: ");
-      ui.add(egui::DragValue::new(&mut transform.rotation.roll).speed(0.1));
-    });
+      ui.heading("Rotation");
+      ui.horizontal(|ui| {
+        ui.label("Yaw: ");
+        ui.add(egui::DragValue::new(&mut transform.rotation.yaw).speed(0.1));
+        ui.label("Pitch: ");
+        ui.add(egui::DragValue::new(&mut transform.rotation.pitch).speed(0.1));
+        ui.label("Roll: ");
+        ui.add(egui::DragValue::new(&mut transform.rotation.roll).speed(0.1));
+      });
 
-    ui.heading("Scale");
-    ui.horizontal(|ui| {
-      ui.label("X: ");
-      ui.add(egui::DragValue::new(&mut transform.scale.x).speed(0.1));
-      ui.label("Y: ");
-      ui.add(egui::DragValue::new(&mut transform.scale.y).speed(0.1));
-      ui.label("Z: ");
-      ui.add(egui::DragValue::new(&mut transform.scale.z).speed(0.1));
-    });
+      ui.heading("Scale");
+      ui.horizontal(|ui| {
+        ui.label("X: ");
+        ui.add(egui::DragValue::new(&mut transform.scale.x).speed(0.1));
+        ui.label("Y: ");
+        ui.add(egui::DragValue::new(&mut transform.scale.y).speed(0.1));
+        ui.label("Z: ");
+        ui.add(egui::DragValue::new(&mut transform.scale.z).speed(0.1));
+      });
+    }
+
+    let object = object_rc.borrow();
+    if object.as_octree_object().is_some() {
+      ui.separator();
+      ui.heading("Boolean Operation");
+
+      ComboBox::from_label("Operation")
+        .selected_text(format!("{}", ui_manager.boolean_operator))
+        .show_ui(ui, |ui| {
+          ui.selectable_value(&mut ui_manager.boolean_operator, BooleanOperator::UNION, "Union");
+          ui.selectable_value(&mut ui_manager.boolean_operator, BooleanOperator::INTERSECTION, "Intersection");
+          ui.selectable_value(&mut ui_manager.boolean_operator, BooleanOperator::DIFFERENCE, "Difference");
+        });
+
+      let mut selected_name = "Select Object".to_string();
+      if let Some(selected_id) = ui_manager.selected_boolean_object_id {
+        if let Some(object) = scene.objects_by_id.get(&selected_id) {
+          selected_name = object.borrow().get_name();
+        }
+      }
+
+      ComboBox::from_label("Object")
+        .selected_text(selected_name)
+        .show_ui(ui, |ui| {
+          for (id, object) in scene.objects_by_id.iter() {
+            if Some(*id) != ui_manager.selected_object_id && object.borrow().as_octree_object().is_some() {
+              ui.selectable_value(&mut ui_manager.selected_boolean_object_id, Some(*id), object.borrow().get_name());
+            }
+          }
+        });
+
+      if ui.button("Apply").clicked() {
+        if let Some(right_id) = ui_manager.selected_boolean_object_id {
+          let left_object_rc = scene.objects_by_id.get(&selected_id).unwrap().clone();
+          let right_object_rc = scene.objects_by_id.get(&right_id).unwrap().clone();
+
+          let new_object = match ui_manager.boolean_operator {
+            BooleanOperator::UNION => OctreeBoolean::union(left_object_rc, right_object_rc, 0.0),
+            BooleanOperator::INTERSECTION => OctreeBoolean::intersection(left_object_rc, right_object_rc, 0.0),
+            BooleanOperator::DIFFERENCE => OctreeBoolean::difference(left_object_rc, right_object_rc, 0.0),
+          };
+
+          scene.remove_object(selected_id);
+          scene.remove_object(right_id);
+
+          scene.add_object(ProgramType::Instanced, Rc::new(RefCell::new(new_object)));
+          ui_manager.selected_object_id = None;
+          ui_manager.selected_boolean_object_id = None;
+        }
+      }
+    }
   }
 
   fn draw_add_object_window(ctx: &egui::Context, ui_manager: &mut UIManager, scene: &mut Scene) {

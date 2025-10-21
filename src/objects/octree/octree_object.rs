@@ -126,6 +126,8 @@ macro_rules! derive_Object {
       fn tick(&mut self) { }
 
       fn draw(&self, program: &Program) { self.instanced_cube.draw(program); }
+
+      fn as_octree_object(&self) -> Option<&dyn OctreeObject> { Some(self) }
     }
   };
 }

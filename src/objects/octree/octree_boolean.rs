@@ -24,8 +24,8 @@ impl Display for BooleanOperator {
 
 #[allow(dead_code)]
 pub struct OctreeBoolean {
-  pub left: Rc<RefCell<dyn OctreeObject>>,
-  pub right: Rc<RefCell<dyn OctreeObject>>,
+  pub left: Rc<RefCell<dyn Object>>,
+  pub right: Rc<RefCell<dyn Object>>,
   pub operator: BooleanOperator,
 
   pub max_depth: u32,
@@ -36,27 +36,29 @@ pub struct OctreeBoolean {
 
 #[allow(dead_code)]
 impl OctreeBoolean {
-  pub fn union(left: Rc<RefCell<dyn OctreeObject>>, right: Rc<RefCell<dyn OctreeObject>>, spacing: f32) -> Self {
+  pub fn union(left: Rc<RefCell<dyn Object>>, right: Rc<RefCell<dyn Object>>, spacing: f32) -> Self {
     Self::new(left, right, BooleanOperator::UNION, spacing)
   }
-  pub fn intersection(left: Rc<RefCell<dyn OctreeObject>>, right: Rc<RefCell<dyn OctreeObject>>, spacing: f32) -> Self {
+  pub fn intersection(left: Rc<RefCell<dyn Object>>, right: Rc<RefCell<dyn Object>>, spacing: f32) -> Self {
     Self::new(left, right, BooleanOperator::INTERSECTION, spacing)
   }
-  pub fn difference(left: Rc<RefCell<dyn OctreeObject>>, right: Rc<RefCell<dyn OctreeObject>>, spacing: f32) -> Self {
+  pub fn difference(left: Rc<RefCell<dyn Object>>, right: Rc<RefCell<dyn Object>>, spacing: f32) -> Self {
     Self::new(left, right, BooleanOperator::DIFFERENCE, spacing)
   }
 
   pub fn new(
-    left: Rc<RefCell<dyn OctreeObject>>,
-    right: Rc<RefCell<dyn OctreeObject>>,
+    left: Rc<RefCell<dyn Object>>,
+    right: Rc<RefCell<dyn Object>>,
     operator: BooleanOperator,
     spacing: f32,
   ) -> Self {
     let left_object = left.clone();
     let left_object = left_object.as_ref().borrow();
+    let left_object = left_object.as_octree_object().expect("Left object is not an octree object");
 
     let right_object = right.clone();
     let right_object = right_object.as_ref().borrow();
+    let right_object = right_object.as_octree_object().expect("Right object is not an octree object");
 
     let name = format!("{} {} {}", left_object.get_name(), operator, right_object.get_name());
     let max_depth = left_object.get_max_depth().max(right_object.get_max_depth());
@@ -87,8 +89,8 @@ impl OctreeObject for OctreeBoolean {
 
   #[allow(unconditional_recursion)]
   fn get_bounding_box(&self) -> AABB {
-    let left_aabb = self.left.as_ref().borrow().get_bounding_box();
-    let right_aabb = self.right.as_ref().borrow().get_bounding_box();
+    let left_aabb = self.left.as_ref().borrow().as_octree_object().unwrap().get_bounding_box();
+    let right_aabb = self.right.as_ref().borrow().as_octree_object().unwrap().get_bounding_box();
 
     AABB { min: left_aabb.min.min(right_aabb.min), max: left_aabb.max.max(right_aabb.max) }
   }
@@ -96,7 +98,9 @@ impl OctreeObject for OctreeBoolean {
   #[allow(unconditional_recursion)]
   fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType {
     let left_object = self.left.as_ref().borrow();
+    let left_object = left_object.as_octree_object().unwrap();
     let right_object = self.right.as_ref().borrow();
+    let right_object = right_object.as_octree_object().unwrap();
 
     let left_node_type = left_object.get_node_type(aabb);
     let right_node_type = right_object.get_node_type(aabb);

@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::{opengl::program::Program, utils::{material::Material, transform::Transform}};
+use crate::{objects::octree::octree_object::OctreeObject, opengl::program::Program, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
 pub trait Object {
@@ -14,4 +14,6 @@ pub trait Object {
 
   fn tick(&mut self);
   fn draw(&self, program: &Program);
+
+  fn as_octree_object(&self) -> Option<&dyn OctreeObject> { None }
 }

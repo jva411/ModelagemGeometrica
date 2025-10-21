@@ -59,5 +59,13 @@ impl Scene {
     self.objects[program_type as usize].push(object.clone());
     self.objects_by_id.insert(id, object);
   }
+
+  pub fn remove_object(&mut self, id: Uuid) {
+    self.objects_by_id.remove(&id);
+    for objects in &mut self.objects {
+      objects.retain(|obj| obj.borrow().get_id() != id);
+    }
+  }
+
   pub fn add_light(&mut self, light: Box<dyn Light>) { self.lights.push(light); }
 }
