@@ -63,6 +63,12 @@ impl OctreeObject for OctreeCube {
       return OctreeNodeType::IN;
     }
 
+    if aabb.min.x > half_size.x || aabb.max.x < -half_size.x ||
+      aabb.min.y > half_size.y || aabb.max.y < -half_size.y ||
+      aabb.min.z > half_size.z || aabb.max.z < -half_size.z {
+      return OctreeNodeType::OUT;
+    }
+
     OctreeNodeType::PARTIAL
   }
 

@@ -12,8 +12,6 @@ use glam::Vec3;
 
 use crate::lights::point_light::PointLight;
 use crate::objects::octree::octree_boolean::OctreeBoolean;
-use crate::objects::octree::octree_cone::OctreeCone;
-use crate::objects::octree::octree_sphere::OctreeSphere;
 use crate::scene::window::Window;
 
 
@@ -32,24 +30,23 @@ fn main() {
     SCENE_WIDTH,
   );
 
-  let cone = OctreeCone::new(
-    "Octree Cone".to_string(),
-    1.0,
-    2.0,
-    8,
+  let left = crate::objects::octree::octree_cube::OctreeCube::new(
+    "Octree Cube".to_string(),
+    Vec3::splat(1.0),
+    6,
     0.0,
     None
   );
-  let sphere = OctreeSphere::new(
+  let right = crate::objects::octree::octree_sphere::OctreeSphere::new(
     "Octree Sphere".to_string(),
-    0.7,
-    8,
+    0.65,
+    6,
     0.0,
     None
   );
 
-  let left = Rc::new(RefCell::new(cone));
-  let right = Rc::new(RefCell::new(sphere));
+  let left = Rc::new(RefCell::new(left));
+  let right = Rc::new(RefCell::new(right));
   let result = OctreeBoolean::difference(left, right, 0.0);
   window.scene.add_object(opengl::renderer::ProgramType::Instanced, Rc::new(RefCell::new(result)));
 
