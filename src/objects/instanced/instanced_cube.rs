@@ -93,6 +93,21 @@ impl InstancedCube {
       instance_vbo,
     };
   }
+
+  pub fn draw_minus_base_transform(&self, program: &Program, base_model: Mat4) {
+    self.vao.bind();
+    self.vbo.bind();
+    self.ebo.bind();
+
+    self.material.send_to_program(program);
+
+    let model = self.transform.build_model() * base_model.inverse();
+
+    unsafe {
+      program.set_uniform_matrix4f("baseModel", model).expect("Failed to set baseModel uniform");
+      gl::DrawElementsInstanced(gl::TRIANGLES, INDICES.len() as i32, gl::UNSIGNED_INT, 0 as *const _, self.instances_transforms.len() as i32);
+    }
+  }
 }
 
 impl InstacedObject for InstancedCube {

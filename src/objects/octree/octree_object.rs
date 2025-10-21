@@ -1,4 +1,4 @@
-use glam::Vec3;
+use glam::{Vec3, Vec4};
 
 use crate::{objects::object::Object, utils::transform::Transform};
 
@@ -10,12 +10,54 @@ pub trait OctreeObject: Object {
   fn get_bounding_box(&self) -> AABB;
   fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType;
 
+  fn generate_octree(&mut self);
   fn generate_instanced_cube(&mut self);
 }
 
 pub struct AABB {
   pub min: Vec3,
   pub max: Vec3,
+}
+
+impl AABB {
+  pub fn transform(&self, transform: &Transform) -> AABB {
+    let model = transform.build_model();
+
+    let min = model.transform_point3(self.min);
+    let max = model.transform_point3(self.max);
+
+    let max_value = max.max_element().abs().max(min.min_element().abs());
+
+    let min = Vec3::splat(-max_value);
+    let max = Vec3::splat(max_value);
+
+    AABB { min, max }
+  }
+
+  pub fn inverse_transform(&self, transform: &Transform) -> AABB {
+    let inverse_model = transform.build_model().inverse();
+
+    let corners = [
+        inverse_model * Vec4::new(self.min.x, self.min.y, self.min.z, 1.0),
+        inverse_model * Vec4::new(self.max.x, self.min.y, self.min.z, 1.0),
+        inverse_model * Vec4::new(self.min.x, self.max.y, self.min.z, 1.0),
+        inverse_model * Vec4::new(self.min.x, self.min.y, self.max.z, 1.0),
+        inverse_model * Vec4::new(self.max.x, self.max.y, self.min.z, 1.0),
+        inverse_model * Vec4::new(self.min.x, self.max.y, self.max.z, 1.0),
+        inverse_model * Vec4::new(self.max.x, self.min.y, self.max.z, 1.0),
+        inverse_model * Vec4::new(self.max.x, self.max.y, self.max.z, 1.0),
+    ];
+
+    let mut model_aabb_min = Vec3::splat(f32::MAX);
+    let mut model_aabb_max = Vec3::splat(f32::MIN);
+    for corner in corners.iter() {
+        let p = corner.truncate();
+        model_aabb_min = model_aabb_min.min(p);
+        model_aabb_max = model_aabb_max.max(p);
+    }
+
+    AABB { min: model_aabb_min, max: model_aabb_max }
+  }
 }
 
 #[derive(Debug)]
@@ -125,9 +167,10 @@ macro_rules! derive_Object {
 
       fn tick(&mut self) { }
 
-      fn draw(&self, program: &Program) { self.instanced_cube.draw(program); }
+      fn draw(&self, program: &Program) { self.instanced_cube.draw_minus_base_transform(program, self.transform.build_model()); }
 
       fn as_octree_object(&self) -> Option<&dyn OctreeObject> { Some(self) }
+      fn as_octree_object_mut(&mut self) -> Option<&mut dyn OctreeObject> { Some(self) }
     }
   };
 }

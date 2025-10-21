@@ -10,6 +10,7 @@ pub struct OctreeCube {
   pub spacing: f32,
   pub root: Option<OctreeNode>,
   pub instanced_cube: InstancedCube,
+  pub transform: Transform,
 }
 
 #[allow(dead_code)]
@@ -20,6 +21,7 @@ impl OctreeCube {
     max_depth: u32,
     spacing: f32,
     material: Option<Material>,
+
   ) -> Self {
     let mut object = OctreeCube {
       size,
@@ -27,12 +29,10 @@ impl OctreeCube {
       spacing,
       root: None,
       instanced_cube: InstancedCube::new(name, material),
+      transform: Transform::new(),
     };
 
-    let root = OctreeNode::generate_octree(&object, max_depth);
-    object.root = Some(root);
-    object.generate_instanced_cube();
-
+    object.generate_octree();
     return object;
   }
 }
@@ -46,10 +46,11 @@ impl OctreeObject for OctreeCube {
     AABB {
       min: -half_size,
       max: half_size,
-    }
+    }.transform(&self.transform)
   }
 
   fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType {
+    let aabb = aabb.inverse_transform(&self.transform);
     let half_size = self.size / 2.0;
     if aabb.max.x <= half_size.x && aabb.min.x >= -half_size.x &&
       aabb.max.y <= half_size.y && aabb.min.y >= -half_size.y &&
@@ -66,13 +67,20 @@ impl OctreeObject for OctreeCube {
     OctreeNodeType::PARTIAL
   }
 
+  fn generate_octree(&mut self) {
+    self.transform = self.instanced_cube.transform.clone();
+    let root = OctreeNode::generate_octree(self, self.max_depth);
+    self.root = Some(root);
+
+    self.generate_instanced_cube();
+  }
+
   fn generate_instanced_cube(&mut self) {
-    if let Some(root) = self.root.as_ref() {
-      root.generate_transforms(
-        self.spacing,
-        self.instanced_cube.get_instances_transforms_mut(),
-      );
-    }
+    let instances_transforms = self.instanced_cube.get_instances_transforms_mut();
+    instances_transforms.clear();
+
+    let root = self.root.as_ref().unwrap();
+    root.generate_transforms(self.spacing, instances_transforms);
 
     self.instanced_cube.setup_instances();
   }

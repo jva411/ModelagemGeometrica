@@ -195,6 +195,13 @@ impl Window {
         ui.label("Z: ");
         ui.add(egui::DragValue::new(&mut transform.scale.z).speed(0.1));
       });
+
+      ui.separator();
+      if ui.button("Rebuild Octree").clicked() {
+        if let Some(object) = object.as_octree_object_mut() {
+          object.generate_octree();
+        }
+      }
     }
 
     let object = object_rc.borrow();

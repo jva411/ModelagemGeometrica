@@ -32,6 +32,7 @@ pub struct OctreeBoolean {
   pub spacing: f32,
   pub root: Option<OctreeNode>,
   pub instanced_cube: InstancedCube,
+  pub transform: Transform,
 }
 
 #[allow(dead_code)]
@@ -72,12 +73,10 @@ impl OctreeBoolean {
       spacing,
       root: None,
       instanced_cube: InstancedCube::new(name, None),
+      transform: Transform::new(),
     };
 
-    let root = OctreeNode::generate_octree(&object, max_depth);
-    object.root = Some(root);
-    object.generate_instanced_cube();
-
+    object.generate_octree();
     return object;
   }
 }
@@ -92,18 +91,19 @@ impl OctreeObject for OctreeBoolean {
     let left_aabb = self.left.as_ref().borrow().as_octree_object().unwrap().get_bounding_box();
     let right_aabb = self.right.as_ref().borrow().as_octree_object().unwrap().get_bounding_box();
 
-    AABB { min: left_aabb.min.min(right_aabb.min), max: left_aabb.max.max(right_aabb.max) }
+    AABB { min: left_aabb.min.min(right_aabb.min), max: left_aabb.max.max(right_aabb.max) }.transform(&self.transform)
   }
 
   #[allow(unconditional_recursion)]
   fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType {
+    let aabb = aabb.inverse_transform(&self.transform);
     let left_object = self.left.as_ref().borrow();
     let left_object = left_object.as_octree_object().unwrap();
     let right_object = self.right.as_ref().borrow();
     let right_object = right_object.as_octree_object().unwrap();
 
-    let left_node_type = left_object.get_node_type(aabb);
-    let right_node_type = right_object.get_node_type(aabb);
+    let left_node_type = left_object.get_node_type(&aabb);
+    let right_node_type = right_object.get_node_type(&aabb);
 
     match self.operator {
       BooleanOperator::UNION => {
@@ -132,13 +132,20 @@ impl OctreeObject for OctreeBoolean {
     }
   }
 
+  fn generate_octree(&mut self) {
+    self.transform = self.instanced_cube.transform.clone();
+    let root = OctreeNode::generate_octree(self, self.max_depth);
+    self.root = Some(root);
+
+    self.generate_instanced_cube();
+  }
+
   fn generate_instanced_cube(&mut self) {
-    if let Some(root) = self.root.as_ref() {
-      root.generate_transforms(
-        self.spacing,
-        self.instanced_cube.get_instances_transforms_mut(),
-      );
-    }
+    let instances_transforms = self.instanced_cube.get_instances_transforms_mut();
+    instances_transforms.clear();
+
+    let root = self.root.as_ref().unwrap();
+    root.generate_transforms(self.spacing, instances_transforms);
 
     self.instanced_cube.setup_instances();
   }

@@ -16,4 +16,5 @@ pub trait Object {
   fn draw(&self, program: &Program);
 
   fn as_octree_object(&self) -> Option<&dyn OctreeObject> { None }
+  fn as_octree_object_mut(&mut self) -> Option<&mut dyn OctreeObject> { None }
 }
