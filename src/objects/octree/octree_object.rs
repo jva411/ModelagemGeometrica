@@ -4,6 +4,9 @@ use crate::{objects::object::Object, utils::transform::Transform};
 
 #[allow(dead_code)]
 pub trait OctreeObject: Object {
+  fn get_max_depth(&self) -> u32;
+  fn get_root(&self) -> Option<&OctreeNode>;
+
   fn get_bounding_box(&self) -> AABB;
   fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType;
 

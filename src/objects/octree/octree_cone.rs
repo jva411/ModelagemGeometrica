@@ -47,6 +47,9 @@ impl OctreeCone {
 }
 
 impl OctreeObject for OctreeCone {
+  fn get_max_depth(&self) -> u32 { self.max_depth }
+  fn get_root(&self) -> Option<&OctreeNode> { self.root.as_ref() }
+
   fn get_bounding_box(&self) -> AABB {
     let min = Vec3::new(-self.radius, -self.height / 2.0, -self.radius);
     let max = Vec3::new(self.radius, self.height / 2.0, self.radius);

@@ -45,6 +45,9 @@ impl OctreeSphere {
 }
 
 impl OctreeObject for OctreeSphere {
+  fn get_max_depth(&self) -> u32 { self.max_depth }
+  fn get_root(&self) -> Option<&OctreeNode> { self.root.as_ref() }
+
   fn get_bounding_box(&self) -> AABB {
     let min = -Vec3::splat(self.radius);
     let max = Vec3::splat(self.radius);

@@ -44,6 +44,9 @@ impl OctreeCube {
 }
 
 impl OctreeObject for OctreeCube {
+  fn get_max_depth(&self) -> u32 { self.max_depth }
+  fn get_root(&self) -> Option<&OctreeNode> { self.root.as_ref() }
+
   fn get_bounding_box(&self) -> AABB {
     let half_size = self.size / 2.0;
     AABB {

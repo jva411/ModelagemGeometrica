@@ -5,9 +5,15 @@ mod scene;
 mod utils;
 
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use glam::Vec3;
 
 use crate::lights::point_light::PointLight;
+use crate::objects::octree::octree_boolean::OctreeBoolean;
+use crate::objects::octree::octree_cone::OctreeCone;
+use crate::objects::octree::octree_sphere::OctreeSphere;
 use crate::scene::window::Window;
 
 
@@ -25,6 +31,27 @@ fn main() {
     WINDOW_HEIGHT,
     SCENE_WIDTH,
   );
+
+  let cone = OctreeCone::new(
+    "Octree Cone".to_string(),
+    1.0,
+    2.0,
+    8,
+    0.0,
+    None
+  );
+  let sphere = OctreeSphere::new(
+    "Octree Sphere".to_string(),
+    0.7,
+    8,
+    0.0,
+    None
+  );
+
+  let left = Rc::new(RefCell::new(cone));
+  let right = Rc::new(RefCell::new(sphere));
+  let result = OctreeBoolean::difference(left, right, 0.0);
+  window.scene.add_object(opengl::renderer::ProgramType::Instanced, Rc::new(RefCell::new(result)));
 
   // Scene setup
   let mut l0 = PointLight::new(
