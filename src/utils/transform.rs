@@ -19,9 +19,9 @@ impl Rotation {
   }
 
   pub fn to_quat(&self) -> Quat {
-    Quat::from_axis_angle(Vec3::Y, self.yaw)
-      * Quat::from_axis_angle(Vec3::X, self.pitch)
-      * Quat::from_axis_angle(Vec3::Z, self.roll)
+    Quat::from_axis_angle(Vec3::Y, self.yaw.to_radians())
+      * Quat::from_axis_angle(Vec3::X, self.pitch.to_radians())
+      * Quat::from_axis_angle(Vec3::Z, self.roll.to_radians())
   }
 }
 

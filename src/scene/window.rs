@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, sync::Arc, time::Instant};
+use std::{cell::RefCell, rc::Rc, time::Instant};
 
 use sdl2::video::{GLProfile, SwapInterval};
 use egui_sdl2_gl::{self as egui_backend, DpiScaling, ShaderVersion};

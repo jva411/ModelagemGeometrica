@@ -12,9 +12,10 @@ pub struct Material {
 pub const BLANK: Material = Material {
   diffuse: Vec3::ONE,
   specular: Vec3::new(0.4, 0.4, 0.4),
-  shininess: 32.0,
+  shininess: 1.0,
 };
 
+#[allow(dead_code)]
 impl Material {
   pub fn new(diffuse: Vec3, specular: Vec3, shininess: f32) -> Self {
     Material {

@@ -21,6 +21,7 @@ const VERTICES: [f32; 18] = [
    0.0,  0.5, 0.0,   0.0,  0.0, -1.0,
 ];
 
+#[allow(dead_code)]
 impl Triangle {
   pub fn new(transform: Option<Transform>, material: Option<Material>) -> Self {
     let transform = transform.unwrap_or(Transform::new());

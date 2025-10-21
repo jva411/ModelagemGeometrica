@@ -19,6 +19,7 @@ pub struct OctreeCylinder {
 #[allow(dead_code)]
 impl OctreeCylinder {
   pub fn new(
+    name: String,
     radius: f32,
     height: f32,
     max_depth: u32,
@@ -27,7 +28,7 @@ impl OctreeCylinder {
   ) -> Self {
     let mut object = OctreeCylinder {
       id: Uuid::new_v4(),
-      name: String::from("Octree Cylinder"),
+      name,
       material: material.unwrap_or_default(),
       radius,
       height,

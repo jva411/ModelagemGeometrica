@@ -18,6 +18,7 @@ pub struct OctreeCube {
 #[allow(dead_code)]
 impl OctreeCube {
   pub fn new(
+    name: String,
     size: Vec3,
     max_depth: u32,
     spacing: f32,
@@ -25,7 +26,7 @@ impl OctreeCube {
   ) -> Self {
     let mut object = OctreeCube {
       id: Uuid::new_v4(),
-      name: "Octree Cube".to_string(),
+      name,
       material: material.unwrap_or_default(),
       size,
       max_depth,

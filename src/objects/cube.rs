@@ -61,6 +61,7 @@ const SIZE_F32: u32 = size_of::<f32>() as u32;
 const STRIDE: u32 = (3+3) * SIZE_F32;
 const SKIPS: [u32; 2] = [0, 3 * SIZE_F32];
 
+#[allow(dead_code)]
 impl Cube {
   pub fn new(transform: Option<Transform>, material: Option<Material>) -> Self {
     let transform = transform.unwrap_or(Transform::new());

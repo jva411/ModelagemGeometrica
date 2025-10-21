@@ -18,6 +18,7 @@ pub struct OctreeSphere {
 #[allow(dead_code)]
 impl OctreeSphere {
   pub fn new(
+    name: String,
     radius: f32,
     max_depth: u32,
     spacing: f32,
@@ -26,7 +27,7 @@ impl OctreeSphere {
 
     let mut object = OctreeSphere {
       id: Uuid::new_v4(),
-      name: "Octree Sphere".to_string(),
+      name,
       material: material.unwrap_or_default(),
       radius,
       max_depth,

@@ -34,8 +34,11 @@ pub struct Camera {
 #[allow(dead_code)]
 impl Camera {
   pub fn new() -> Self {
+    let mut transform = CameraTransform::new();
+    transform.translate(-4.0, 0.0, 0.0);
+
     Camera {
-      transform: CameraTransform::new(),
+      transform,
       fov: 45.0,
       aspect: 8.0/6.0,
       near: 0.01,
