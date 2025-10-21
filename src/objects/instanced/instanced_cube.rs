@@ -65,7 +65,7 @@ const STRIDE: u32 = (3+3) * SIZE_F32;
 const SKIPS: [u32; 2] = [0, 3 * SIZE_F32];
 
 impl InstancedCube {
-  pub fn new(material: Option<Material>) -> Self {
+  pub fn new(name: String, material: Option<Material>) -> Self {
     let vao = VAO::new();
     let vbo = VBO::new();
     let ebo = EBO::new();
@@ -83,7 +83,7 @@ impl InstancedCube {
 
     return Self {
       id: Uuid::new_v4(),
-      name: "Instanced Cube".to_string(),
+      name,
       instances_transforms: Vec::new(),
       transform: Transform::new(),
       material: material.unwrap_or_default(),

@@ -110,3 +110,22 @@ impl OctreeNode {
     }
   }
 }
+
+#[macro_export]
+macro_rules! derive_Object {
+  ($type:ty) => {
+    impl Object for $type {
+      fn get_id(&self) -> Uuid { self.instanced_cube.id }
+      fn get_name(&self) -> String { self.instanced_cube.name.clone() }
+      fn get_name_mut(&mut self) -> &mut String { &mut self.instanced_cube.name }
+
+      fn get_transform(&self) -> &Transform { &self.instanced_cube.transform }
+      fn get_transform_mut(&mut self) -> &mut Transform { &mut self.instanced_cube.transform }
+      fn get_material(&self) -> &Material { &self.instanced_cube.material }
+
+      fn tick(&mut self) { }
+
+      fn draw(&self, program: &Program) { self.instanced_cube.draw(program); }
+    }
+  };
+}
