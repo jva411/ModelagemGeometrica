@@ -1,5 +1,6 @@
 use std::{cell::RefCell, fmt::Display, rc::Rc};
 
+use glam::Vec3;
 use uuid::Uuid;
 
 use crate::{derive_Object, objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{OctreeNode, OctreeNodeType, OctreeObject, AABB}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
@@ -91,7 +92,15 @@ impl OctreeObject for OctreeBoolean {
     let left_aabb = self.left.as_ref().borrow().as_octree_object().unwrap().get_bounding_box();
     let right_aabb = self.right.as_ref().borrow().as_octree_object().unwrap().get_bounding_box();
 
-    AABB { min: left_aabb.min.min(right_aabb.min), max: left_aabb.max.max(right_aabb.max) }.transform(&self.transform)
+    let max_element = left_aabb.max.max_element().abs()
+      .max(left_aabb.min.min_element().abs())
+      .max(right_aabb.max.max_element().abs())
+      .max(right_aabb.min.min_element().abs());
+
+    let min = Vec3::splat(-max_element);
+    let max = Vec3::splat(max_element);
+
+    AABB { min, max }.transform(&self.transform)
   }
 
   #[allow(unconditional_recursion)]

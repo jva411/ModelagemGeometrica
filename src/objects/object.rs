@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use uuid::Uuid;
 
 use crate::{objects::octree::octree_object::OctreeObject, opengl::program::Program, utils::{material::Material, transform::Transform}};
@@ -17,4 +19,7 @@ pub trait Object {
 
   fn as_octree_object(&self) -> Option<&dyn OctreeObject> { None }
   fn as_octree_object_mut(&mut self) -> Option<&mut dyn OctreeObject> { None }
+
+  fn as_any(&self) -> &dyn Any;
+  fn as_any_mut(&mut self) -> &mut dyn Any;
 }

@@ -12,6 +12,17 @@ pub enum UITab {
   Properties,
 }
 
+#[derive(Clone, Debug)]
+pub enum UICommand {
+  CreateOctree(NewOctreeObjectProperties),
+  DeleteObject(Uuid),
+  ApplyBoolean {
+    left_id: Uuid,
+    right_id: Uuid,
+    operator: BooleanOperator,
+  },
+}
+
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum ObjectType {
   Octree,
@@ -25,7 +36,9 @@ pub enum OctreePrimitive {
   Cone,
 }
 
-pub struct NewObjectProperties {
+#[derive(Clone, Debug)]
+pub struct NewOctreeObjectProperties {
+  primitive: OctreePrimitive,
   name: String,
 
   radius: f32,
@@ -36,9 +49,10 @@ pub struct NewObjectProperties {
   spacing: f32,
 }
 
-impl Default for NewObjectProperties {
+impl Default for NewOctreeObjectProperties {
   fn default() -> Self {
     Self {
+      primitive: OctreePrimitive::Sphere,
       name: "New Object".to_string(),
       radius: 1.0,
       height: 2.0,
@@ -56,11 +70,12 @@ pub struct UIManager {
 
   pub is_add_object_window_open: bool,
   pub new_object_type: ObjectType,
-  pub new_octree_primitive: OctreePrimitive,
-  pub new_object_properties: NewObjectProperties,
+  pub new_object_properties: NewOctreeObjectProperties,
 
   pub boolean_operator: BooleanOperator,
   pub selected_boolean_object_id: Option<Uuid>,
+
+  pub commands_queue: Vec<UICommand>,
 }
 
 impl UIManager {
@@ -70,10 +85,10 @@ impl UIManager {
       selected_object_id: None,
       is_add_object_window_open: false,
       new_object_type: ObjectType::Octree,
-      new_octree_primitive: OctreePrimitive::Sphere,
-      new_object_properties: NewObjectProperties::default(),
+      new_object_properties: NewOctreeObjectProperties::default(),
       boolean_operator: BooleanOperator::UNION,
       selected_boolean_object_id: None,
+      commands_queue: Vec::new(),
     }
   }
 }
@@ -98,7 +113,7 @@ impl Window {
           Window::draw_tabs(ui, ui_manager, scene);
       });
 
-    Window::draw_add_object_window(&self.egui.context, ui_manager, scene);
+    Window::draw_add_object_window(&self.egui.context, ui_manager);
 
     let FullOutput {
       platform_output,
@@ -164,6 +179,11 @@ impl Window {
       ui.heading("Name");
       ui.add(egui::TextEdit::singleline(object.get_name_mut()));
       ui.separator();
+      let delete_button = egui::Button::new("Delete Object").fill(egui::Color32::from_rgb(180, 40, 40));
+      if ui.add(delete_button).clicked() {
+        ui_manager.commands_queue.push(UICommand::DeleteObject(selected_id));
+      }
+      ui.separator();
 
       let transform = object.get_transform_mut();
       ui.heading("Translation");
@@ -179,11 +199,11 @@ impl Window {
       ui.heading("Rotation");
       ui.horizontal(|ui| {
         ui.label("Yaw: ");
-        ui.add(egui::DragValue::new(&mut transform.rotation.yaw).speed(0.1));
+        ui.add(egui::DragValue::new(&mut transform.rotation.yaw).speed(0.5));
         ui.label("Pitch: ");
-        ui.add(egui::DragValue::new(&mut transform.rotation.pitch).speed(0.1));
+        ui.add(egui::DragValue::new(&mut transform.rotation.pitch).speed(0.5));
         ui.label("Roll: ");
-        ui.add(egui::DragValue::new(&mut transform.rotation.roll).speed(0.1));
+        ui.add(egui::DragValue::new(&mut transform.rotation.roll).speed(0.5));
       });
 
       ui.heading("Scale");
@@ -195,8 +215,45 @@ impl Window {
         ui.label("Z: ");
         ui.add(egui::DragValue::new(&mut transform.scale.z).speed(0.1));
       });
-
       ui.separator();
+
+      let any_mut = object.as_any_mut();
+
+      if let Some(cube) = any_mut.downcast_mut::<OctreeCube>() {
+        ui.heading("Octree Cube Properties");
+        ui.horizontal(|ui| {
+          ui.label("Size X: ");
+          ui.add(egui::DragValue::new(&mut cube.size.x).speed(0.1));
+          ui.label("Size Y: ");
+          ui.add(egui::DragValue::new(&mut cube.size.y).speed(0.1));
+          ui.label("Size Z: ");
+          ui.add(egui::DragValue::new(&mut cube.size.z).speed(0.1));
+        });
+        ui.add(egui::Slider::new(&mut cube.max_depth, 1..=10).text("Max Depth"));
+        ui.add(egui::Slider::new(&mut cube.spacing, 0.0..=1.0).text("Spacing"));
+      } else if let Some(sphere) = any_mut.downcast_mut::<OctreeSphere>() {
+        ui.heading("Octree Sphere Properties");
+        ui.add(egui::Slider::new(&mut sphere.radius, 0.1..=10.0).text("Radius"));
+        ui.add(egui::Slider::new(&mut sphere.max_depth, 1..=10).text("Max Depth"));
+        ui.add(egui::Slider::new(&mut sphere.spacing, 0.0..=1.0).text("Spacing"));
+      } else if let Some(cylinder) = any_mut.downcast_mut::<OctreeCylinder>() {
+        ui.heading("Octree Cylinder Properties");
+        ui.add(egui::Slider::new(&mut cylinder.radius, 0.1..=10.0).text("Radius"));
+        ui.add(egui::Slider::new(&mut cylinder.height, 0.1..=10.0).text("Height"));
+        ui.add(egui::Slider::new(&mut cylinder.max_depth, 1..=10).text("Max Depth"));
+        ui.add(egui::Slider::new(&mut cylinder.spacing, 0.0..=1.0).text("Spacing"));
+      } else if let Some(cone) = any_mut.downcast_mut::<OctreeCone>() {
+        ui.heading("Octree Cone Properties");
+        ui.add(egui::Slider::new(&mut cone.radius, 0.1..=10.0).text("Radius"));
+        ui.add(egui::Slider::new(&mut cone.height, 0.1..=10.0).text("Height"));
+        ui.add(egui::Slider::new(&mut cone.max_depth, 1..=10).text("Max Depth"));
+        ui.add(egui::Slider::new(&mut cone.spacing, 0.0..=1.0).text("Spacing"));
+      } else if let Some(boolean) = any_mut.downcast_mut::<OctreeBoolean>() {
+        ui.heading("Octree Boolean Properties");
+        ui.add(egui::Slider::new(&mut boolean.max_depth, 1..=10).text("Max Depth"));
+        ui.add(egui::Slider::new(&mut boolean.spacing, 0.0..=1.0).text("Spacing"));
+      }
+
       if ui.button("Rebuild Octree").clicked() {
         if let Some(object) = object.as_octree_object_mut() {
           object.generate_octree();
@@ -236,27 +293,17 @@ impl Window {
 
       if ui.button("Apply").clicked() {
         if let Some(right_id) = ui_manager.selected_boolean_object_id {
-          let left_object_rc = scene.objects_by_id.get(&selected_id).unwrap().clone();
-          let right_object_rc = scene.objects_by_id.get(&right_id).unwrap().clone();
-
-          let new_object = match ui_manager.boolean_operator {
-            BooleanOperator::UNION => OctreeBoolean::union(left_object_rc, right_object_rc, 0.0),
-            BooleanOperator::INTERSECTION => OctreeBoolean::intersection(left_object_rc, right_object_rc, 0.0),
-            BooleanOperator::DIFFERENCE => OctreeBoolean::difference(left_object_rc, right_object_rc, 0.0),
-          };
-
-          scene.remove_object(selected_id);
-          scene.remove_object(right_id);
-
-          scene.add_object(ProgramType::Instanced, Rc::new(RefCell::new(new_object)));
-          ui_manager.selected_object_id = None;
-          ui_manager.selected_boolean_object_id = None;
+          ui_manager.commands_queue.push(UICommand::ApplyBoolean {
+            left_id: selected_id,
+            right_id,
+            operator: ui_manager.boolean_operator,
+          })
         }
       }
     }
   }
 
-  fn draw_add_object_window(ctx: &egui::Context, ui_manager: &mut UIManager, scene: &mut Scene) {
+  fn draw_add_object_window(ctx: &egui::Context, ui_manager: &mut UIManager) {
     if !ui_manager.is_add_object_window_open {
       return;
     }
@@ -290,14 +337,13 @@ impl Window {
         ui.separator();
         ui.horizontal(|ui| {
           if ui.button("Create").clicked() {
-            let new_object = Window::create_object(ui_manager);
-            scene.add_object(ProgramType::Instanced, new_object);
+            ui_manager.commands_queue.push(UICommand::CreateOctree(ui_manager.new_object_properties.clone()));
             ui_manager.is_add_object_window_open = false;
-            // Reseta as propriedades para a próxima criação
-            ui_manager.new_object_properties = NewObjectProperties::default();
+            ui_manager.new_object_properties = NewOctreeObjectProperties::default();
           }
           if ui.button("Cancel").clicked() {
             ui_manager.is_add_object_window_open = false;
+            ui_manager.new_object_properties = NewOctreeObjectProperties::default();
           }
         });
       });
@@ -306,25 +352,25 @@ impl Window {
   fn draw_octree_options(ui: &mut Ui, ui_manager: &mut UIManager) {
     ui.heading("Primitive");
     ComboBox::from_label("Select the primitive")
-      .selected_text(format!("{:?}", ui_manager.new_octree_primitive))
+      .selected_text(format!("{:?}", ui_manager.new_object_properties.primitive))
       .show_ui(ui, |ui| {
         ui.selectable_value(
-          &mut ui_manager.new_octree_primitive,
+          &mut ui_manager.new_object_properties.primitive,
           OctreePrimitive::Cube,
           "Cube",
         );
         ui.selectable_value(
-          &mut ui_manager.new_octree_primitive,
+          &mut ui_manager.new_object_properties.primitive,
           OctreePrimitive::Sphere,
           "Sphere",
         );
         ui.selectable_value(
-          &mut ui_manager.new_octree_primitive,
+          &mut ui_manager.new_object_properties.primitive,
           OctreePrimitive::Cylinder,
           "Cylinder",
         );
         ui.selectable_value(
-          &mut ui_manager.new_octree_primitive,
+          &mut ui_manager.new_object_properties.primitive,
           OctreePrimitive::Cone,
           "Cone",
         );
@@ -338,7 +384,7 @@ impl Window {
       ui.text_edit_singleline(&mut props.name);
     });
 
-    match ui_manager.new_octree_primitive {
+    match props.primitive {
       OctreePrimitive::Sphere => {
         ui.horizontal(|ui| {
           ui.label("Radius: ");
@@ -379,43 +425,69 @@ impl Window {
     });
   }
 
-  fn create_object(ui_manager: &UIManager) -> Rc<RefCell<dyn Object>> {
-    let props = &ui_manager.new_object_properties;
-    let name = props.name.clone();
+  pub fn process_ui_commands(&mut self) {
+    let commands: Vec<UICommand> = self.ui_manager.commands_queue.drain(..).collect();
 
-    match ui_manager.new_object_type {
-      ObjectType::Octree => match ui_manager.new_octree_primitive {
-        OctreePrimitive::Sphere => Rc::new(RefCell::new(OctreeSphere::new(
-          name,
-          props.radius,
-          props.max_depth,
-          props.spacing,
-          None,
-        ))),
-        OctreePrimitive::Cube => Rc::new(RefCell::new(OctreeCube::new(
-          name,
-          props.size,
-          props.max_depth,
-          props.spacing,
-          None,
-        ))),
-        OctreePrimitive::Cylinder => Rc::new(RefCell::new(OctreeCylinder::new(
-          name,
-          props.radius,
-          props.height,
-          props.max_depth,
-          props.spacing,
-          None,
-        ))),
-        OctreePrimitive::Cone => Rc::new(RefCell::new(OctreeCone::new(
-          name,
-          props.radius,
-          props.height,
-          props.max_depth,
-          props.spacing,
-          None,
-        ))),
-      },
+    for command in commands {
+      match command {
+        UICommand::CreateOctree(props) => {
+          let new_object = create_octree_object(props);
+          self.scene.add_object(ProgramType::Instanced, new_object);
+        }
+
+        UICommand::DeleteObject(id) => {
+          self.scene.remove_object(id);
+        },
+
+        UICommand::ApplyBoolean { left_id, right_id, operator } => {
+          let left_object_rc = self.scene.objects_by_id.get(&left_id).unwrap().clone();
+          let right_object_rc = self.scene.objects_by_id.get(&right_id).unwrap().clone();
+          let new_object = OctreeBoolean::new(left_object_rc, right_object_rc, operator, 0.0);
+
+          self.scene.remove_object(left_id);
+          self.scene.remove_object(right_id);
+
+          self.scene.add_object(ProgramType::Instanced, Rc::new(RefCell::new(new_object)));
+          self.ui_manager.selected_object_id = None;
+          self.ui_manager.selected_boolean_object_id = None;
+        }
+      }
     }
+  }
+}
+fn create_octree_object(props: NewOctreeObjectProperties) -> Rc<RefCell<dyn Object>> {
+  let name = props.name.clone();
+
+  match props.primitive {
+    OctreePrimitive::Sphere => Rc::new(RefCell::new(OctreeSphere::new(
+      name,
+      props.radius,
+      props.max_depth,
+      props.spacing,
+      None,
+    ))),
+    OctreePrimitive::Cube => Rc::new(RefCell::new(OctreeCube::new(
+      name,
+      props.size,
+      props.max_depth,
+      props.spacing,
+      None,
+    ))),
+    OctreePrimitive::Cylinder => Rc::new(RefCell::new(OctreeCylinder::new(
+      name,
+      props.radius,
+      props.height,
+      props.max_depth,
+      props.spacing,
+      None,
+    ))),
+    OctreePrimitive::Cone => Rc::new(RefCell::new(OctreeCone::new(
+      name,
+      props.radius,
+      props.height,
+      props.max_depth,
+      props.spacing,
+      None,
+    ))),
   }
 }

@@ -102,6 +102,9 @@ impl Object for Cube {
   fn get_transform_mut(&mut self) -> &mut Transform { &mut self.transform }
   fn get_material(&self) -> &Material { &self.material }
 
+  fn as_any(&self) -> &dyn std::any::Any where Self: Sized { self }
+  fn as_any_mut(&mut self) -> &mut dyn std::any::Any where Self: Sized { self }
+
   fn tick(&mut self) {}
 
   fn draw(&self, program: &Program) {

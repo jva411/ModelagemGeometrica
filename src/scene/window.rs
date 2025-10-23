@@ -134,6 +134,7 @@ impl Window {
 
       // Render UI
       self.draw_ui();
+      self.process_ui_commands();
 
       self.sdl.window.gl_swap_window();
       self.delta_time = last_time.elapsed().as_secs_f32();

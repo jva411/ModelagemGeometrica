@@ -61,9 +61,15 @@ impl Scene {
   }
 
   pub fn remove_object(&mut self, id: Uuid) {
-    self.objects_by_id.remove(&id);
+    if self.objects_by_id.remove(&id).is_none() {
+      return
+    };
+
     for objects in &mut self.objects {
-      objects.retain(|obj| obj.borrow().get_id() != id);
+      if let Some(index) = objects.iter().position(|object| object.borrow().get_id() == id) {
+        objects.remove(index);
+        break;
+      }
     }
   }
 
