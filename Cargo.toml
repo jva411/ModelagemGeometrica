@@ -12,3 +12,5 @@ glam = "0.30.6"
 image = "0.25.8"
 sdl2 = { version = "0.37.0", features = ["bundled"] }
 uuid = { version = "1.18.1", features = ["v4"] }
+tobj = "4.0.3"
+rfd = "0.15.4"

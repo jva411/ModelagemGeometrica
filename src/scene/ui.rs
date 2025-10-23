@@ -1,10 +1,11 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
 use egui::{vec2, ComboBox, FullOutput, SidePanel, Ui, Window as EguiWindow};
 use glam::Vec3;
+use rfd::FileDialog;
 use uuid::Uuid;
 
-use crate::{objects::{object::Object, octree::{octree_boolean::{BooleanOperator, OctreeBoolean}, octree_cone::OctreeCone, octree_cube::OctreeCube, octree_cylinder::OctreeCylinder, octree_sphere::OctreeSphere}}, opengl::renderer::ProgramType, scene::{scene::Scene, window::Window}};
+use crate::{objects::{object::Object, octree::{octree_boolean::{BooleanOperator, OctreeBoolean}, octree_cone::OctreeCone, octree_cube::OctreeCube, octree_cylinder::OctreeCylinder, octree_mesh::OctreeMesh, octree_sphere::OctreeSphere}}, opengl::renderer::ProgramType, scene::{scene::Scene, window::Window}};
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum UITab {
@@ -34,6 +35,7 @@ pub enum OctreePrimitive {
   Sphere,
   Cylinder,
   Cone,
+  Mesh,
 }
 
 #[derive(Clone, Debug)]
@@ -44,6 +46,7 @@ pub struct NewOctreeObjectProperties {
   radius: f32,
   height: f32,
   size: Vec3,
+  obj_path: Option<PathBuf>,
 
   max_depth: u32,
   spacing: f32,
@@ -57,6 +60,7 @@ impl Default for NewOctreeObjectProperties {
       radius: 1.0,
       height: 2.0,
       size: Vec3::ONE,
+      obj_path: None,
       max_depth: 5,
       spacing: 0.0,
     }
@@ -252,6 +256,10 @@ impl Window {
         ui.heading("Octree Boolean Properties");
         ui.add(egui::Slider::new(&mut boolean.max_depth, 1..=10).text("Max Depth"));
         ui.add(egui::Slider::new(&mut boolean.spacing, 0.0..=1.0).text("Spacing"));
+      } else if let Some(mesh) = any_mut.downcast_mut::<OctreeMesh>() {
+        ui.heading("Octree Mesh Properties");
+        ui.add(egui::Slider::new(&mut mesh.max_depth, 1..=10).text("Max Depth"));
+        ui.add(egui::Slider::new(&mut mesh.spacing, 0.0..=1.0).text("Spacing"));
       }
 
       if ui.button("Rebuild Octree").clicked() {
@@ -336,10 +344,15 @@ impl Window {
 
         ui.separator();
         ui.horizontal(|ui| {
-          if ui.button("Create").clicked() {
-            ui_manager.commands_queue.push(UICommand::CreateOctree(ui_manager.new_object_properties.clone()));
-            ui_manager.is_add_object_window_open = false;
-            ui_manager.new_object_properties = NewOctreeObjectProperties::default();
+          let should_enable_creation = ui_manager.new_object_properties.primitive != OctreePrimitive::Mesh
+            || ui_manager.new_object_properties.obj_path.is_some();
+
+            if ui.button("Create").clicked() {
+            if should_enable_creation {
+              ui_manager.commands_queue.push(UICommand::CreateOctree(ui_manager.new_object_properties.clone()));
+              ui_manager.is_add_object_window_open = false;
+              ui_manager.new_object_properties = NewOctreeObjectProperties::default();
+            }
           }
           if ui.button("Cancel").clicked() {
             ui_manager.is_add_object_window_open = false;
@@ -373,6 +386,11 @@ impl Window {
           &mut ui_manager.new_object_properties.primitive,
           OctreePrimitive::Cone,
           "Cone",
+        );
+        ui.selectable_value(
+          &mut ui_manager.new_object_properties.primitive,
+          OctreePrimitive::Mesh,
+          "Mesh",
         );
       });
 
@@ -409,6 +427,16 @@ impl Window {
         ui.horizontal(|ui| {
           ui.label("Height: ");
           ui.add(egui::DragValue::new(&mut props.height).speed(0.1));
+        });
+      }
+      OctreePrimitive::Mesh => {
+        ui.horizontal(|ui| {
+          ui.label("Obj Path: ");
+          if ui.button("Select model").clicked() {
+            let extensions = vec!["obj"];
+            let path = FileDialog::new().add_filter("OBJ", &extensions).pick_file();
+            props.obj_path = path;
+          }
         });
       }
     }
@@ -485,6 +513,13 @@ fn create_octree_object(props: NewOctreeObjectProperties) -> Rc<RefCell<dyn Obje
       name,
       props.radius,
       props.height,
+      props.max_depth,
+      props.spacing,
+      None,
+    ))),
+    OctreePrimitive::Mesh => Rc::new(RefCell::new(OctreeMesh::new(
+      name,
+      props.obj_path.unwrap(),
       props.max_depth,
       props.spacing,
       None,
