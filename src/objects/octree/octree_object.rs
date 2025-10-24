@@ -1,3 +1,5 @@
+use std::io::{Read, Result, Write};
+
 use glam::{Vec3, Vec4};
 
 use crate::{objects::object::Object, utils::transform::Transform};
@@ -38,22 +40,22 @@ impl AABB {
     let inverse_model = transform.build_model().inverse();
 
     let corners = [
-        inverse_model * Vec4::new(self.min.x, self.min.y, self.min.z, 1.0),
-        inverse_model * Vec4::new(self.max.x, self.min.y, self.min.z, 1.0),
-        inverse_model * Vec4::new(self.min.x, self.max.y, self.min.z, 1.0),
-        inverse_model * Vec4::new(self.min.x, self.min.y, self.max.z, 1.0),
-        inverse_model * Vec4::new(self.max.x, self.max.y, self.min.z, 1.0),
-        inverse_model * Vec4::new(self.min.x, self.max.y, self.max.z, 1.0),
-        inverse_model * Vec4::new(self.max.x, self.min.y, self.max.z, 1.0),
-        inverse_model * Vec4::new(self.max.x, self.max.y, self.max.z, 1.0),
+      inverse_model * Vec4::new(self.min.x, self.min.y, self.min.z, 1.0),
+      inverse_model * Vec4::new(self.max.x, self.min.y, self.min.z, 1.0),
+      inverse_model * Vec4::new(self.min.x, self.max.y, self.min.z, 1.0),
+      inverse_model * Vec4::new(self.min.x, self.min.y, self.max.z, 1.0),
+      inverse_model * Vec4::new(self.max.x, self.max.y, self.min.z, 1.0),
+      inverse_model * Vec4::new(self.min.x, self.max.y, self.max.z, 1.0),
+      inverse_model * Vec4::new(self.max.x, self.min.y, self.max.z, 1.0),
+      inverse_model * Vec4::new(self.max.x, self.max.y, self.max.z, 1.0),
     ];
 
     let mut model_aabb_min = Vec3::splat(f32::MAX);
     let mut model_aabb_max = Vec3::splat(f32::MIN);
     for corner in corners.iter() {
-        let p = corner.truncate();
-        model_aabb_min = model_aabb_min.min(p);
-        model_aabb_max = model_aabb_max.max(p);
+      let p = corner.truncate();
+      model_aabb_min = model_aabb_min.min(p);
+      model_aabb_max = model_aabb_max.max(p);
     }
 
     AABB { min: model_aabb_min, max: model_aabb_max }
@@ -150,6 +152,66 @@ impl OctreeNode {
         child.generate_transforms(spacing, transforms);
       }
     }
+  }
+
+  pub fn serialize(&self, writer: &mut impl Write) {
+    match self.node_type {
+      OctreeNodeType::PARTIAL => {
+        if let Some(children) = &self.children {
+          writer.write_all(b"(").unwrap();
+          for child in children {
+            child.serialize(writer);
+          }
+        } else {
+          writer.write_all(b"B").unwrap();
+        }
+      }
+      OctreeNodeType::IN => writer.write_all(b"B").unwrap(),
+      OctreeNodeType::OUT => writer.write_all(b"W").unwrap(),
+    }
+  }
+
+  pub fn deserialize(reader: &mut impl Read, aabb: AABB) -> Result<Self> {
+    let mut buffer = [0; 1];
+    reader.read_exact(&mut buffer)?;
+
+    let node = match buffer[0] {
+      b'(' => {
+        let mut node = OctreeNode::new(aabb, OctreeNodeType::PARTIAL);
+        let mut children = Vec::new();
+        let mid = (node.aabb.min + node.aabb.max) * 0.5;
+
+        for i in 0..8 {
+          let min = Vec3::new(
+            if (i & 1) == 0 { node.aabb.min.x } else { mid.x },
+            if (i & 2) == 0 { node.aabb.min.y } else { mid.y },
+            if (i & 4) == 0 { node.aabb.min.z } else { mid.z },
+          );
+          let max = Vec3::new(
+            if (i & 1) == 0 { mid.x } else { node.aabb.max.x },
+            if (i & 2) == 0 { mid.y } else { node.aabb.max.y },
+            if (i & 4) == 0 { mid.z } else { node.aabb.max.z },
+          );
+          let child_aabb = AABB { min, max };
+          let child = OctreeNode::deserialize(reader, child_aabb);
+          if let Ok(child) = child {
+            children.push(Box::new(child));
+          } else {
+            break;
+          }
+        }
+        if children.len() == 8 {
+          node.children = Some(children);
+        }
+
+        node
+      }
+      b'B' => OctreeNode::new(aabb, OctreeNodeType::IN),
+      b'W' => OctreeNode::new(aabb, OctreeNodeType::OUT),
+      _ => panic!("Invalid character in octree file"),
+    };
+
+    Ok(node)
   }
 }
 
