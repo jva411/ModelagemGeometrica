@@ -16,6 +16,7 @@ pub trait OctreeObject: Object {
   fn generate_instanced_cube(&mut self);
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct AABB {
   pub min: Vec3,
   pub max: Vec3,
@@ -60,15 +61,22 @@ impl AABB {
 
     AABB { min: model_aabb_min, max: model_aabb_max }
   }
+
+  pub fn intersects(&self, other: &AABB) -> bool {
+    (self.min.x <= other.max.x && self.max.x >= other.min.x) &&
+    (self.min.y <= other.max.y && self.max.y >= other.min.y) &&
+    (self.min.z <= other.max.z && self.max.z >= other.min.z)
+  }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OctreeNodeType {
   IN,
   OUT,
   PARTIAL,
 }
 
+#[derive(Debug, Clone)]
 pub struct OctreeNode {
   pub aabb: AABB,
   pub node_type: OctreeNodeType,
@@ -171,12 +179,18 @@ impl OctreeNode {
     }
   }
 
-  pub fn deserialize(reader: &mut impl Read, aabb: AABB) -> Result<Self> {
+  pub fn deserialize(reader: &mut impl Read, aabb: AABB, depth: u32, max_depth: u32) -> Result<(Self, u32)> {
     let mut buffer = [0; 1];
     reader.read_exact(&mut buffer)?;
 
+    let mut max_depth_arrived = depth;
     let node = match buffer[0] {
       b'(' => {
+        if depth >= max_depth {
+          let node = OctreeNode::new(aabb, OctreeNodeType::IN);
+          OctreeNode::deserialize_skip_node(reader)?;
+          return Ok((node, max_depth_arrived));
+        }
         let mut node = OctreeNode::new(aabb, OctreeNodeType::PARTIAL);
         let mut children = Vec::new();
         let mid = (node.aabb.min + node.aabb.max) * 0.5;
@@ -193,9 +207,10 @@ impl OctreeNode {
             if (i & 4) == 0 { mid.z } else { node.aabb.max.z },
           );
           let child_aabb = AABB { min, max };
-          let child = OctreeNode::deserialize(reader, child_aabb);
-          if let Ok(child) = child {
+          let result = OctreeNode::deserialize(reader, child_aabb, depth + 1, max_depth);
+          if let Ok((child, max_depth)) = result {
             children.push(Box::new(child));
+            max_depth_arrived = max_depth_arrived.max(max_depth);
           } else {
             break;
           }
@@ -211,7 +226,54 @@ impl OctreeNode {
       _ => panic!("Invalid character in octree file"),
     };
 
-    Ok(node)
+    Ok((node, max_depth_arrived))
+  }
+
+  fn deserialize_skip_node(reader: &mut impl Read) -> Result<()> {
+    for _ in 0..8 {
+      let mut buffer = [0; 1];
+      reader.read_exact(&mut buffer)?;
+
+      match buffer[0] {
+        b'(' => OctreeNode::deserialize_skip_node(reader)?,
+        b'B' => {},
+        b'W' => {},
+        _ => panic!("Invalid character in octree file"),
+      };
+    }
+    Ok(())
+  }
+
+  pub fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType {
+    if !self.aabb.intersects(aabb) {
+      return OctreeNodeType::OUT;
+    }
+
+    if self.is_leaf() {
+      return self.node_type;
+    }
+
+    let mut has_in = false;
+    let mut has_out = false;
+
+    if let Some(children) = &self.children {
+      for child in children {
+        let child_type = child.get_node_type(aabb);
+        match child_type {
+          OctreeNodeType::IN => has_in = true,
+          OctreeNodeType::OUT => has_out = true,
+          OctreeNodeType::PARTIAL => return OctreeNodeType::PARTIAL,
+        }
+      }
+    }
+
+    if has_in && has_out {
+      OctreeNodeType::PARTIAL
+    } else if has_in {
+      OctreeNodeType::IN
+    } else {
+      OctreeNodeType::OUT
+    }
   }
 }
 

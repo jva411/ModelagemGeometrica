@@ -179,7 +179,8 @@ impl Window {
       return;
     };
 
-    let is_generic_octree = object_rc.borrow().as_any().is::<OctreeGeneric>();
+    // let is_generic_octree = object_rc.borrow().as_any().is::<OctreeGeneric>();
+    let is_generic_octree = false;
     {
       let mut object = object_rc.borrow_mut();
 
@@ -270,6 +271,10 @@ impl Window {
           ui.heading("Octree Mesh Properties");
           ui.add(egui::Slider::new(&mut mesh.max_depth, 1..=10).text("Max Depth"));
           ui.add(egui::Slider::new(&mut mesh.spacing, 0.0..=1.0).text("Spacing"));
+        } else if let Some(generic) = any_mut.downcast_mut::<OctreeGeneric>() {
+          ui.heading("Octree Generic Properties");
+          ui.add(egui::Slider::new(&mut generic.max_depth, 1..=generic.original_max_depth).text("Max Depth"));
+          ui.add(egui::Slider::new(&mut generic.spacing, 0.0..=1.0).text("Spacing"));
         }
 
         if ui.button("Rebuild Octree").clicked() {
@@ -413,7 +418,7 @@ impl Window {
         ui.selectable_value(
           &mut ui_manager.new_object_properties.primitive,
           OctreePrimitive::Generic,
-          "Generic",
+          "Load Model",
         );
       });
 
@@ -455,18 +460,34 @@ impl Window {
       OctreePrimitive::Mesh => {
         ui.horizontal(|ui| {
           ui.label("Obj Path: ");
-          if ui.button("Select model").clicked() {
+          let placeholder = if let Some(path) = &props.obj_path {
+            path.file_stem().unwrap().to_str().unwrap()
+          } else {
+            "Select model"
+          };
+          if ui.button(placeholder).clicked() {
             let path = FileDialog::new().add_filter("OBJ", &["obj"]).pick_file();
-            props.obj_path = path;
+            let path = path.unwrap();
+            let stem = path.file_stem().unwrap().to_str().unwrap();
+            props.name = stem.to_string();
+            props.obj_path = Some(path);
           }
         });
       }
       OctreePrimitive::Generic => {
         ui.horizontal(|ui| {
           ui.label("Octree Path: ");
-          if ui.button("Select octree").clicked() {
+          let placeholder = if let Some(path) = &props.obj_path {
+            path.file_stem().unwrap().to_str().unwrap()
+          } else {
+            "Select octree"
+          };
+          if ui.button(placeholder).clicked() {
             let path = FileDialog::new().add_filter("OBJ", &["oct"]).pick_file();
-            props.obj_path = path;
+            let path = path.unwrap();
+            let stem = path.file_stem().unwrap().to_str().unwrap();
+            props.name = stem.to_string();
+            props.obj_path = Some(path);
           }
         });
       }

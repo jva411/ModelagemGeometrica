@@ -6,9 +6,11 @@ use crate::{derive_Object, objects::{instanced::{instanced_cube::InstancedCube, 
 
 #[allow(dead_code)]
 pub struct OctreeGeneric {
+  pub original_max_depth: u32,
   pub max_depth: u32,
   pub spacing: f32,
-  pub root: Option<OctreeNode>,
+  pub original_root: OctreeNode,
+  pub root: OctreeNode,
   pub instanced_cube: InstancedCube,
   pub transform: Transform,
 }
@@ -24,15 +26,20 @@ impl OctreeGeneric {
   ) -> Self {
     let file = fs::File::open(path).expect("Failed to open file");
     let mut reader = BufReader::new(file);
-    let root = OctreeNode::deserialize(&mut reader, AABB {
+    let result = OctreeNode::deserialize(&mut reader, AABB {
       min: Vec3::new(-0.5, -0.5, -0.5),
       max: Vec3::new(0.5, 0.5, 0.5),
-    });
+    }, 0, max_depth);
+
+    let (root, max_depth_arrived) = result.expect("Failed to deserialize octree");
+    let max_depth = max_depth_arrived.max(max_depth);
 
     let mut object = OctreeGeneric {
+      original_max_depth: max_depth,
       max_depth,
       spacing,
-      root: Some(root.expect("Failed to deserialize octree")),
+      original_root: root.clone(),
+      root: root,
       instanced_cube: InstancedCube::new(name, material),
       transform: Transform::new(),
     };
@@ -44,7 +51,7 @@ impl OctreeGeneric {
 
 impl OctreeObject for OctreeGeneric {
   fn get_max_depth(&self) -> u32 { self.max_depth }
-  fn get_root(&self) -> Option<&OctreeNode> { self.root.as_ref() }
+  fn get_root(&self) -> Option<&OctreeNode> { Some(&self.root) }
 
   fn get_bounding_box(&self) -> AABB {
     AABB {
@@ -53,20 +60,24 @@ impl OctreeObject for OctreeGeneric {
     }.transform(&self.transform)
   }
 
-  fn get_node_type(&self, _aabb: &AABB) -> OctreeNodeType {
-    panic!("get_node_type should not be called on OctreeGeneric");
+  fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType {
+    let aabb = aabb.inverse_transform(self.get_transform());
+
+    self.original_root.get_node_type(&aabb)
   }
 
   fn generate_octree(&mut self) {
-    panic!("generate_octree should not be called on OctreeGeneric");
+    self.transform = self.instanced_cube.transform.clone();
+    self.root = OctreeNode::generate_octree(self, self.max_depth);
+
+    self.generate_instanced_cube();
   }
 
   fn generate_instanced_cube(&mut self) {
     let instances_transforms = self.instanced_cube.get_instances_transforms_mut();
     instances_transforms.clear();
 
-    let root = self.root.as_ref().unwrap();
-    root.generate_transforms(self.spacing, instances_transforms);
+    self.root.generate_transforms(self.spacing, instances_transforms);
 
     self.instanced_cube.setup_instances();
   }
