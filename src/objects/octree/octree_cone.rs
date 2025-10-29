@@ -85,8 +85,21 @@ impl OctreeObject for OctreeCone {
     let y_check = aabb.min.y.max(-half_height).min(half_height);
     let cone_radius_at_y = self.radius * (half_height - y_check) / self.height;
 
-    let closest_x = aabb.min.x.max(-aabb.max.x).min(aabb.max.x);
-    let closest_z = aabb.min.z.max(-aabb.max.z).min(aabb.max.z);
+    let closest_x = if aabb.max.x < 0.0 {
+      aabb.max.x
+    } else if aabb.min.x > 0.0 {
+      aabb.min.x
+    } else {
+      0.0
+    };
+
+    let closest_z = if aabb.max.z < 0.0 {
+      aabb.max.z
+    } else if aabb.min.z > 0.0 {
+      aabb.min.z
+    } else {
+      0.0
+    };
 
     if closest_x * closest_x + closest_z * closest_z > cone_radius_at_y * cone_radius_at_y {
       let center_aabb = (aabb.min + aabb.max) / 2.0;
