@@ -2,12 +2,15 @@ use std::io::{Read, Result, Write};
 
 use glam::{Vec3, Vec4};
 
-use crate::{objects::object::Object, utils::transform::Transform};
+use crate::{objects::{instanced::instanced_cube::InstancedCube, object::Object}, utils::transform::Transform};
 
 #[allow(dead_code)]
 pub trait OctreeObject: Object {
   fn get_max_depth(&self) -> u32;
+  fn get_spacing(&self) -> f32;
+  fn get_volume(&self) -> f32;
   fn get_root(&self) -> Option<&OctreeNode>;
+  fn get_instanced_cube(&self) -> &InstancedCube;
 
   fn get_bounding_box(&self) -> AABB;
   fn get_node_type(&self, aabb: &AABB) -> OctreeNodeType;
@@ -273,6 +276,40 @@ impl OctreeNode {
       OctreeNodeType::IN
     } else {
       OctreeNodeType::OUT
+    }
+  }
+}
+
+#[macro_export]
+macro_rules! impl_partial_OctreeObject {
+  () => {
+    fn get_max_depth(&self) -> u32 { self.max_depth }
+    fn get_spacing(&self) -> f32 { self.spacing }
+    fn get_volume(&self) -> f32 { self.volume }
+    fn get_root(&self) -> Option<&OctreeNode> { self.root.as_ref() }
+    fn get_instanced_cube(&self) -> &InstancedCube { &self.instanced_cube }
+
+    fn generate_octree(&mut self) {
+      self.transform = self.instanced_cube.transform.clone();
+      let root = OctreeNode::generate_octree(self, self.max_depth);
+      self.root = Some(root);
+
+      self.generate_instanced_cube();
+    }
+
+    fn generate_instanced_cube(&mut self) {
+      let instances_transforms = self.instanced_cube.get_instances_transforms_mut();
+      instances_transforms.clear();
+
+      let root = self.root.as_ref().unwrap();
+      root.generate_transforms(self.spacing, instances_transforms);
+
+      self.instanced_cube.setup_instances();
+
+      self.volume = self.instanced_cube.instances_transforms
+        .iter()
+        .fold(0.0, |acc, t| acc + t.scale.x * t.scale.y * t.scale.z / (1.0 - self.spacing).powi(3))
+        * self.transform.scale.x * self.transform.scale.y * self.transform.scale.z;
     }
   }
 }

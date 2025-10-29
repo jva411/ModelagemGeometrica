@@ -5,7 +5,7 @@ use glam::Vec3;
 use rfd::FileDialog;
 use uuid::Uuid;
 
-use crate::{objects::{object::Object, octree::{octree_boolean::{BooleanOperator, OctreeBoolean}, octree_cone::OctreeCone, octree_cube::OctreeCube, octree_cylinder::OctreeCylinder, octree_generic::OctreeGeneric, octree_mesh::OctreeMesh, octree_sphere::OctreeSphere}}, opengl::renderer::ProgramType, scene::{scene::Scene, window::Window}};
+use crate::{objects::{instanced::instanced_object::InstacedObject, object::Object, octree::{octree_boolean::{BooleanOperator, OctreeBoolean}, octree_cone::OctreeCone, octree_cube::OctreeCube, octree_cylinder::OctreeCylinder, octree_generic::OctreeGeneric, octree_mesh::OctreeMesh, octree_sphere::OctreeSphere}}, opengl::renderer::ProgramType, scene::{scene::Scene, window::Window}};
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum UITab {
@@ -179,154 +179,151 @@ impl Window {
       return;
     };
 
-    // let is_generic_octree = object_rc.borrow().as_any().is::<OctreeGeneric>();
-    let is_generic_octree = false;
-    {
-      let mut object = object_rc.borrow_mut();
+    let mut object = object_rc.borrow_mut();
 
-      ui.heading("Name");
-      ui.add(egui::TextEdit::singleline(object.get_name_mut()));
-      ui.separator();
-      ui.horizontal(|ui| {
-        if ui.button("Save Object").clicked() {
-          ui_manager.commands_queue.push(UICommand::SaveOctree(selected_id));
-        }
-
-        let delete_button = egui::Button::new("Delete Object").fill(egui::Color32::from_rgb(180, 40, 40));
-        if ui.add(delete_button).clicked() {
-          ui_manager.commands_queue.push(UICommand::DeleteObject(selected_id));
-        }
-      });
-      ui.separator();
-
-      let transform = object.get_transform_mut();
-      ui.heading("Translation");
-      ui.horizontal(|ui| {
-        ui.label("X: ");
-        ui.add(egui::DragValue::new(&mut transform.translation.x).speed(0.1));
-        ui.label("Y: ");
-        ui.add(egui::DragValue::new(&mut transform.translation.y).speed(0.1));
-        ui.label("Z: ");
-        ui.add(egui::DragValue::new(&mut transform.translation.z).speed(0.1));
-      });
-
-      ui.heading("Rotation");
-      ui.horizontal(|ui| {
-        ui.label("Yaw: ");
-        ui.add(egui::DragValue::new(&mut transform.rotation.yaw).speed(0.5));
-        ui.label("Pitch: ");
-        ui.add(egui::DragValue::new(&mut transform.rotation.pitch).speed(0.5));
-        ui.label("Roll: ");
-        ui.add(egui::DragValue::new(&mut transform.rotation.roll).speed(0.5));
-      });
-
-      ui.heading("Scale");
-      ui.horizontal(|ui| {
-        ui.label("X: ");
-        ui.add(egui::DragValue::new(&mut transform.scale.x).speed(0.1));
-        ui.label("Y: ");
-        ui.add(egui::DragValue::new(&mut transform.scale.y).speed(0.1));
-        ui.label("Z: ");
-        ui.add(egui::DragValue::new(&mut transform.scale.z).speed(0.1));
-      });
-      ui.separator();
-
-      if !is_generic_octree {
-        let any_mut = object.as_any_mut();
-
-        if let Some(cube) = any_mut.downcast_mut::<OctreeCube>() {
-          ui.heading("Octree Cube Properties");
-          ui.horizontal(|ui| {
-            ui.label("Size X: ");
-            ui.add(egui::DragValue::new(&mut cube.size.x).speed(0.1));
-            ui.label("Size Y: ");
-            ui.add(egui::DragValue::new(&mut cube.size.y).speed(0.1));
-            ui.label("Size Z: ");
-            ui.add(egui::DragValue::new(&mut cube.size.z).speed(0.1));
-          });
-          ui.add(egui::Slider::new(&mut cube.max_depth, 1..=10).text("Max Depth"));
-          ui.add(egui::Slider::new(&mut cube.spacing, 0.0..=1.0).text("Spacing"));
-        } else if let Some(sphere) = any_mut.downcast_mut::<OctreeSphere>() {
-          ui.heading("Octree Sphere Properties");
-          ui.add(egui::Slider::new(&mut sphere.radius, 0.1..=10.0).text("Radius"));
-          ui.add(egui::Slider::new(&mut sphere.max_depth, 1..=10).text("Max Depth"));
-          ui.add(egui::Slider::new(&mut sphere.spacing, 0.0..=1.0).text("Spacing"));
-        } else if let Some(cylinder) = any_mut.downcast_mut::<OctreeCylinder>() {
-          ui.heading("Octree Cylinder Properties");
-          ui.add(egui::Slider::new(&mut cylinder.radius, 0.1..=10.0).text("Radius"));
-          ui.add(egui::Slider::new(&mut cylinder.height, 0.1..=10.0).text("Height"));
-          ui.add(egui::Slider::new(&mut cylinder.max_depth, 1..=10).text("Max Depth"));
-          ui.add(egui::Slider::new(&mut cylinder.spacing, 0.0..=1.0).text("Spacing"));
-        } else if let Some(cone) = any_mut.downcast_mut::<OctreeCone>() {
-          ui.heading("Octree Cone Properties");
-          ui.add(egui::Slider::new(&mut cone.radius, 0.1..=10.0).text("Radius"));
-          ui.add(egui::Slider::new(&mut cone.height, 0.1..=10.0).text("Height"));
-          ui.add(egui::Slider::new(&mut cone.max_depth, 1..=10).text("Max Depth"));
-          ui.add(egui::Slider::new(&mut cone.spacing, 0.0..=1.0).text("Spacing"));
-        } else if let Some(boolean) = any_mut.downcast_mut::<OctreeBoolean>() {
-          ui.heading("Octree Boolean Properties");
-          ui.add(egui::Slider::new(&mut boolean.max_depth, 1..=10).text("Max Depth"));
-          ui.add(egui::Slider::new(&mut boolean.spacing, 0.0..=1.0).text("Spacing"));
-        } else if let Some(mesh) = any_mut.downcast_mut::<OctreeMesh>() {
-          ui.heading("Octree Mesh Properties");
-          ui.add(egui::Slider::new(&mut mesh.max_depth, 1..=10).text("Max Depth"));
-          ui.add(egui::Slider::new(&mut mesh.spacing, 0.0..=1.0).text("Spacing"));
-        } else if let Some(generic) = any_mut.downcast_mut::<OctreeGeneric>() {
-          ui.heading("Octree Generic Properties");
-          ui.add(egui::Slider::new(&mut generic.max_depth, 1..=generic.original_max_depth).text("Max Depth"));
-          ui.add(egui::Slider::new(&mut generic.spacing, 0.0..=1.0).text("Spacing"));
-        }
-
-        if ui.button("Rebuild Octree").clicked() {
-          if let Some(object) = object.as_octree_object_mut() {
-            object.generate_octree();
-          }
-        }
+    ui.heading("Name");
+    ui.add(egui::TextEdit::singleline(object.get_name_mut()));
+    ui.separator();
+    ui.horizontal(|ui| {
+      if ui.button("Save Object").clicked() {
+        ui_manager.commands_queue.push(UICommand::SaveOctree(selected_id));
       }
+
+      let delete_button = egui::Button::new("Delete Object").fill(egui::Color32::from_rgb(180, 40, 40));
+      if ui.add(delete_button).clicked() {
+        ui_manager.commands_queue.push(UICommand::DeleteObject(selected_id));
+      }
+    });
+    ui.separator();
+
+    let transform = object.get_transform_mut();
+    ui.heading("Translation");
+    ui.horizontal(|ui| {
+      ui.label("X: ");
+      ui.add(egui::DragValue::new(&mut transform.translation.x).speed(0.1));
+      ui.label("Y: ");
+      ui.add(egui::DragValue::new(&mut transform.translation.y).speed(0.1));
+      ui.label("Z: ");
+      ui.add(egui::DragValue::new(&mut transform.translation.z).speed(0.1));
+    });
+
+    ui.heading("Rotation");
+    ui.horizontal(|ui| {
+      ui.label("Yaw: ");
+      ui.add(egui::DragValue::new(&mut transform.rotation.yaw).speed(0.5));
+      ui.label("Pitch: ");
+      ui.add(egui::DragValue::new(&mut transform.rotation.pitch).speed(0.5));
+      ui.label("Roll: ");
+      ui.add(egui::DragValue::new(&mut transform.rotation.roll).speed(0.5));
+    });
+
+    ui.heading("Scale");
+    ui.horizontal(|ui| {
+      ui.label("X: ");
+      ui.add(egui::DragValue::new(&mut transform.scale.x).speed(0.1));
+      ui.label("Y: ");
+      ui.add(egui::DragValue::new(&mut transform.scale.y).speed(0.1));
+      ui.label("Z: ");
+      ui.add(egui::DragValue::new(&mut transform.scale.z).speed(0.1));
+    });
+    ui.separator();
+
+    let any_mut = object.as_any_mut();
+
+    if let Some(cube) = any_mut.downcast_mut::<OctreeCube>() {
+      ui.heading("Octree Cube Properties");
+      ui.horizontal(|ui| {
+        ui.label("Size X: ");
+        ui.add(egui::DragValue::new(&mut cube.size.x).speed(0.1));
+        ui.label("Size Y: ");
+        ui.add(egui::DragValue::new(&mut cube.size.y).speed(0.1));
+        ui.label("Size Z: ");
+        ui.add(egui::DragValue::new(&mut cube.size.z).speed(0.1));
+      });
+      ui.add(egui::Slider::new(&mut cube.max_depth, 1..=10).text("Max Depth"));
+      ui.add(egui::Slider::new(&mut cube.spacing, 0.0..=1.0).text("Spacing"));
+    } else if let Some(sphere) = any_mut.downcast_mut::<OctreeSphere>() {
+      ui.heading("Octree Sphere Properties");
+      ui.add(egui::Slider::new(&mut sphere.radius, 0.1..=10.0).text("Radius"));
+      ui.add(egui::Slider::new(&mut sphere.max_depth, 1..=10).text("Max Depth"));
+      ui.add(egui::Slider::new(&mut sphere.spacing, 0.0..=1.0).text("Spacing"));
+    } else if let Some(cylinder) = any_mut.downcast_mut::<OctreeCylinder>() {
+      ui.heading("Octree Cylinder Properties");
+      ui.add(egui::Slider::new(&mut cylinder.radius, 0.1..=10.0).text("Radius"));
+      ui.add(egui::Slider::new(&mut cylinder.height, 0.1..=10.0).text("Height"));
+      ui.add(egui::Slider::new(&mut cylinder.max_depth, 1..=10).text("Max Depth"));
+      ui.add(egui::Slider::new(&mut cylinder.spacing, 0.0..=1.0).text("Spacing"));
+    } else if let Some(cone) = any_mut.downcast_mut::<OctreeCone>() {
+      ui.heading("Octree Cone Properties");
+      ui.add(egui::Slider::new(&mut cone.radius, 0.1..=10.0).text("Radius"));
+      ui.add(egui::Slider::new(&mut cone.height, 0.1..=10.0).text("Height"));
+      ui.add(egui::Slider::new(&mut cone.max_depth, 1..=10).text("Max Depth"));
+      ui.add(egui::Slider::new(&mut cone.spacing, 0.0..=1.0).text("Spacing"));
+    } else if let Some(boolean) = any_mut.downcast_mut::<OctreeBoolean>() {
+      ui.heading("Octree Boolean Properties");
+      ui.add(egui::Slider::new(&mut boolean.max_depth, 1..=10).text("Max Depth"));
+      ui.add(egui::Slider::new(&mut boolean.spacing, 0.0..=1.0).text("Spacing"));
+    } else if let Some(mesh) = any_mut.downcast_mut::<OctreeMesh>() {
+      ui.heading("Octree Mesh Properties");
+      ui.add(egui::Slider::new(&mut mesh.max_depth, 1..=10).text("Max Depth"));
+      ui.add(egui::Slider::new(&mut mesh.spacing, 0.0..=1.0).text("Spacing"));
+    } else if let Some(generic) = any_mut.downcast_mut::<OctreeGeneric>() {
+      ui.heading("Octree Generic Properties");
+      ui.add(egui::Slider::new(&mut generic.max_depth, 1..=generic.original_max_depth).text("Max Depth"));
+      ui.add(egui::Slider::new(&mut generic.spacing, 0.0..=1.0).text("Spacing"));
     }
 
-    if !is_generic_octree {
-      let object = object_rc.borrow();
-      if object.as_octree_object().is_some() {
-        ui.separator();
-        ui.heading("Boolean Operation");
+    if let Some(object) = object.as_octree_object_mut() {
+      if ui.button("Rebuild Octree").clicked() {
+        object.generate_octree();
+      }
 
-        ComboBox::from_label("Operation")
-          .selected_text(format!("{}", ui_manager.boolean_operator))
-          .show_ui(ui, |ui| {
-            ui.selectable_value(&mut ui_manager.boolean_operator, BooleanOperator::UNION, "Union");
-            ui.selectable_value(&mut ui_manager.boolean_operator, BooleanOperator::INTERSECTION, "Intersection");
-            ui.selectable_value(&mut ui_manager.boolean_operator, BooleanOperator::DIFFERENCE, "Difference");
-          });
+      ui.horizontal(|ui| {
+        ui.label(format!("Nº cubes: {}", object.get_instanced_cube().get_instances_count()));
+        ui.label(format!("Volume: {}", object.get_volume()));
+      });
+    // }
 
-        let mut selected_name = "Select Object".to_string();
-        if let Some(selected_id) = ui_manager.selected_boolean_object_id {
-          if let Some(object) = scene.objects_by_id.get(&selected_id) {
-            selected_name = object.borrow().get_name();
-          }
+    // let object = object_rc.borrow();
+    // if object.as_octree_object().is_some() {
+      ui.separator();
+      ui.heading("Boolean Operation");
+
+      ComboBox::from_label("Operation")
+        .selected_text(format!("{}", ui_manager.boolean_operator))
+        .show_ui(ui, |ui| {
+          ui.selectable_value(&mut ui_manager.boolean_operator, BooleanOperator::UNION, "Union");
+          ui.selectable_value(&mut ui_manager.boolean_operator, BooleanOperator::INTERSECTION, "Intersection");
+          ui.selectable_value(&mut ui_manager.boolean_operator, BooleanOperator::DIFFERENCE, "Difference");
+        });
+
+      let mut selected_name = "Select Object".to_string();
+      if let Some(selected_id) = ui_manager.selected_boolean_object_id {
+        if let Some(object) = scene.objects_by_id.get(&selected_id) {
+          selected_name = object.borrow().get_name();
         }
+      }
 
-        ComboBox::from_label("Object")
-          .selected_text(selected_name)
-          .show_ui(ui, |ui| {
-            for (id, object) in scene.objects_by_id.iter() {
-              if Some(*id) != ui_manager.selected_object_id
-                && object.borrow().as_octree_object().is_some()
-                && !object.borrow().as_any().is::<OctreeGeneric>()
-              {
-                ui.selectable_value(&mut ui_manager.selected_boolean_object_id, Some(*id), object.borrow().get_name());
-              }
+      ComboBox::from_label("Object")
+        .selected_text(selected_name)
+        .show_ui(ui, |ui| {
+          for (id, object) in scene.objects_by_id.iter() {
+            if Some(*id) != ui_manager.selected_object_id
+              && object.borrow().as_octree_object().is_some()
+              && !object.borrow().as_any().is::<OctreeGeneric>()
+            {
+              ui.selectable_value(&mut ui_manager.selected_boolean_object_id, Some(*id), object.borrow().get_name());
             }
-          });
-
-        if ui.button("Apply").clicked() {
-          if let Some(right_id) = ui_manager.selected_boolean_object_id {
-            ui_manager.commands_queue.push(UICommand::ApplyBoolean {
-              left_id: selected_id,
-              right_id,
-              operator: ui_manager.boolean_operator,
-            })
           }
+        });
+
+      if ui.button("Apply").clicked() {
+        if let Some(right_id) = ui_manager.selected_boolean_object_id {
+          ui_manager.commands_queue.push(UICommand::ApplyBoolean {
+            left_id: selected_id,
+            right_id,
+            operator: ui_manager.boolean_operator,
+          })
         }
       }
     }

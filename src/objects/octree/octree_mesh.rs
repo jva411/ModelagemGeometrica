@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use glam::Vec3;
 use uuid::Uuid;
 
-use crate::{derive_Object, objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{OctreeNode, OctreeNodeType, OctreeObject, AABB}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
+use crate::{derive_Object, impl_partial_OctreeObject, objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{AABB, OctreeNode, OctreeNodeType, OctreeObject}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
 pub struct OctreeMesh {
@@ -11,6 +11,7 @@ pub struct OctreeMesh {
   pub indices: Vec<usize>,
   pub max_depth: u32,
   pub spacing: f32,
+  pub volume: f32,
   pub root: Option<OctreeNode>,
   pub instanced_cube: InstancedCube,
   pub transform: Transform,
@@ -57,6 +58,7 @@ impl OctreeMesh {
       indices,
       max_depth,
       spacing,
+      volume: 0.0,
       root: None,
       instanced_cube: InstancedCube::new(name, material),
       transform: Transform::new(),
@@ -99,8 +101,7 @@ impl OctreeMesh {
 }
 
 impl OctreeObject for OctreeMesh {
-  fn get_max_depth(&self) -> u32 { self.max_depth }
-  fn get_root(&self) -> Option<&OctreeNode> { self.root.as_ref() }
+  impl_partial_OctreeObject!();
 
   fn get_bounding_box(&self) -> AABB {
     let mut min = Vec3::splat(f32::MAX);
@@ -153,24 +154,6 @@ impl OctreeObject for OctreeMesh {
     }
 
     OctreeNodeType::OUT
-  }
-
-  fn generate_octree(&mut self) {
-    self.transform = self.instanced_cube.transform.clone();
-    let root = OctreeNode::generate_octree(self, self.max_depth);
-    self.root = Some(root);
-
-    self.generate_instanced_cube();
-  }
-
-  fn generate_instanced_cube(&mut self) {
-    let instances_transforms = self.instanced_cube.get_instances_transforms_mut();
-    instances_transforms.clear();
-
-    let root = self.root.as_ref().unwrap();
-    root.generate_transforms(self.spacing, instances_transforms);
-
-    self.instanced_cube.setup_instances();
   }
 }
 
