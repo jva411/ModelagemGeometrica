@@ -6,11 +6,12 @@ use crate::opengl::{program::Program, shaders::Shaders};
 pub enum ProgramType {
   Common,
   Instanced,
+  Grid,
 }
 
 #[allow(dead_code)]
 pub struct Renderer {
-  pub programs: [Rc<Program>; 2],
+  pub programs: [Rc<Program>; 3],
   pub current_program: Rc<Program>,
 }
 
@@ -27,9 +28,14 @@ impl Renderer {
     let instanced_shaders = Shaders::from_files(&triangle_instanced_vertex_shader_file, &triangle_instanced_fragment_shader_file)?;
     let instanced_program = Program::new(instanced_shaders);
 
+    let grid_vertex_shader_file = File::open("assets/shaders/grid/vertex.glsl").expect("Failed to open grid vertex shader file");
+    let grid_fragment_shader_file = File::open("assets/shaders/grid/fragment.glsl").expect("Failed to open grid fragment shader file");
+    let grid_shaders = Shaders::from_files(&grid_vertex_shader_file, &grid_fragment_shader_file)?;
+    let grid_program = Program::new(grid_shaders);
+
     let current_program = Rc::new(program);
     return Some(Renderer {
-      programs: [current_program.clone(), Rc::new(instanced_program)],
+      programs: [current_program.clone(), Rc::new(instanced_program), Rc::new(grid_program)],
       current_program,
     });
   }

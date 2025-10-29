@@ -89,7 +89,7 @@ impl Program {
     unsafe {
       let location = GetUniformLocation(self.id, name.as_ptr().cast());
       if location == -1 {
-        return Err("Uniform not found".to_string());
+        return Err(format!("Uniform not found: {}", name));
       }
 
       gl::Uniform3fv(location, 1, value.to_array().as_ptr());
@@ -103,7 +103,7 @@ impl Program {
     unsafe {
       let location = GetUniformLocation(self.id, name.as_ptr().cast());
       if location == -1 {
-        return Err("Uniform not found".to_string());
+        return Err(format!("Uniform not found: {}", name));
       }
 
       gl::Uniform1f(location, value);
@@ -117,7 +117,7 @@ impl Program {
     unsafe {
       let location = GetUniformLocation(self.id, name.as_ptr().cast());
       if location == -1 {
-        return Err("Uniform not found".to_string());
+        return Err(format!("Uniform not found: {}", name));
       }
 
       gl::Uniform1i(location, value);

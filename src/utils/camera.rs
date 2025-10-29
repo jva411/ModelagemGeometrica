@@ -35,7 +35,7 @@ pub struct Camera {
 impl Camera {
   pub fn new() -> Self {
     let mut transform = CameraTransform::new();
-    transform.translate(-4.0, 0.0, 0.0);
+    transform.translate(-4.0, 0.0, 1.0);
 
     Camera {
       transform,
@@ -72,7 +72,7 @@ impl Camera {
   pub fn send_to_program(&self, program: &Program) {
     program.set_uniform_matrix4f("view", self.get_view()).unwrap();
     program.set_uniform_matrix4f("projection", self.get_projection()).unwrap();
-    program.set_uniform_vec3f("cameraPosition", self.transform.position).unwrap();
+    let _ = program.set_uniform_vec3f("cameraPosition", self.transform.position);
   }
 }
 

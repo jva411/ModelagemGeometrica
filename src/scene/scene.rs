@@ -1,9 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
 use egui::ahash::{HashMap, HashMapExt};
+use glam::Vec3;
 use uuid::Uuid;
 
-use crate::{lights::light::Light, objects::object::Object, opengl::renderer::{ProgramType, Renderer}, utils::camera::Camera};
+use crate::{lights::light::Light, objects::{grid::{axes::Axes, grid::Grid}, object::Object}, opengl::renderer::{ProgramType, Renderer}, utils::camera::Camera};
 
 #[allow(dead_code)]
 pub struct Scene {
@@ -12,6 +13,8 @@ pub struct Scene {
   pub objects_by_id: HashMap<Uuid, Rc<RefCell<dyn Object>>>,
   pub lights: Vec<Box<dyn Light>>,
   pub renderer: Rc<RefCell<Renderer>>,
+  pub grid: Grid,
+  pub axes: Axes,
 }
 
 #[allow(dead_code)]
@@ -23,6 +26,8 @@ impl Scene {
       objects_by_id: HashMap::new(),
       lights: Vec::new(),
       renderer,
+      grid: Grid::new(20, 0.5, Vec3::splat(0.5)),
+      axes: Axes::new(),
     };
   }
 
@@ -51,6 +56,15 @@ impl Scene {
         object.borrow().draw(program);
       }
     }
+
+    renderer.bind_program(ProgramType::Grid);
+    let program = &renderer.current_program;
+    self.camera.send_to_program(&program);
+    self.grid.draw(program);
+
+    unsafe { gl::Disable(gl::DEPTH_TEST); }
+    self.axes.draw(program);
+    unsafe { gl::Enable(gl::DEPTH_TEST); }
   }
 
 
