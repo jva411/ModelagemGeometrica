@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc, time::Instant};
 use sdl2::video::{GLProfile, SwapInterval};
 use egui_sdl2_gl::{self as egui_backend, DpiScaling, ShaderVersion};
 
-use crate::{opengl::renderer::Renderer, scene::{events::{EventResult, EventsManager}, scene::Scene, ui::UIManager}, utils::camera::Camera};
+use crate::{opengl::renderer::Renderer, scene::{events::{EventResult, EventsManager}, scene::Scene, ui::ui::UIManager}, utils::camera::Camera};
 
 #[allow(dead_code)]
 pub struct SdlContext {
