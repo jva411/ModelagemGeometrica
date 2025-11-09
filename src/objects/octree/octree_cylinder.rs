@@ -62,16 +62,12 @@ impl OctreeObject for OctreeCylinder {
     }
 
     let mut dist_sq_closest = 0.0;
-    if aabb.min.x > 0.0 {
-      dist_sq_closest += aabb.min.x * aabb.min.x;
-    } else if aabb.max.x < 0.0 {
-      dist_sq_closest += aabb.max.x * aabb.max.x;
-    }
-
-    if aabb.min.z > 0.0 {
-      dist_sq_closest += aabb.min.z * aabb.min.z;
-    } else if aabb.max.z < 0.0 {
-      dist_sq_closest += aabb.max.z * aabb.max.z;
+    for i in [0, 2] {
+      if aabb.min[i] > 0.0 {
+        dist_sq_closest += aabb.min[i] * aabb.min[i];
+      } else if aabb.max[i] < 0.0 {
+        dist_sq_closest += aabb.max[i] * aabb.max[i];
+      }
     }
 
     if dist_sq_closest > radius_sq {

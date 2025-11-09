@@ -86,23 +86,16 @@ impl OctreeObject for OctreeCone {
     let y_check = aabb.min.y.max(-half_height).min(half_height);
     let cone_radius_at_y = self.radius * (half_height - y_check) / self.height;
 
-    let closest_x = if aabb.max.x < 0.0 {
-      aabb.max.x
-    } else if aabb.min.x > 0.0 {
-      aabb.min.x
-    } else {
-      0.0
-    };
+    let mut dist_sq_closest = 0.0;
+    for i in [0, 2] {
+      if aabb.min[i] > 0.0 {
+        dist_sq_closest += aabb.min[i] * aabb.min[i];
+      } else if aabb.max[i] < 0.0 {
+        dist_sq_closest += aabb.max[i] * aabb.max[i];
+      }
+    }
 
-    let closest_z = if aabb.max.z < 0.0 {
-      aabb.max.z
-    } else if aabb.min.z > 0.0 {
-      aabb.min.z
-    } else {
-      0.0
-    };
-
-    if closest_x * closest_x + closest_z * closest_z > cone_radius_at_y * cone_radius_at_y {
+    if dist_sq_closest > cone_radius_at_y * cone_radius_at_y {
       let center_aabb = (aabb.min + aabb.max) / 2.0;
       if !is_point_in_cone(center_aabb) {
         return OctreeNodeType::OUT;

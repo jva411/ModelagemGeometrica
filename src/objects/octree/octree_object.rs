@@ -29,11 +29,25 @@ impl AABB {
   pub fn transform(&self, transform: &Transform) -> AABB {
     let model = transform.build_model();
 
-    let min = model.transform_point3(self.min);
-    let max = model.transform_point3(self.max);
+    let corners = [
+      model.transform_point3(Vec3::new(self.min.x, self.min.y, self.min.z)),
+      model.transform_point3(Vec3::new(self.max.x, self.min.y, self.min.z)),
+      model.transform_point3(Vec3::new(self.min.x, self.max.y, self.min.z)),
+      model.transform_point3(Vec3::new(self.min.x, self.min.y, self.max.z)),
+      model.transform_point3(Vec3::new(self.max.x, self.max.y, self.min.z)),
+      model.transform_point3(Vec3::new(self.min.x, self.max.y, self.max.z)),
+      model.transform_point3(Vec3::new(self.max.x, self.min.y, self.max.z)),
+      model.transform_point3(Vec3::new(self.max.x, self.max.y, self.max.z)),
+    ];
 
-    let max_value = max.max_element().abs().max(min.min_element().abs());
+    let mut model_aabb_min = Vec3::splat(f32::MAX);
+    let mut model_aabb_max = Vec3::splat(f32::MIN);
+    for corner in corners.iter() {
+      model_aabb_min = model_aabb_min.min(*corner);
+      model_aabb_max = model_aabb_max.max(*corner);
+    }
 
+    let max_value = model_aabb_max.max_element().abs().max(model_aabb_min.min_element().abs());
     let min = Vec3::splat(-max_value);
     let max = Vec3::splat(max_value);
 

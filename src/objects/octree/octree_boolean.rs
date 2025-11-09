@@ -134,8 +134,8 @@ impl OctreeObject for OctreeBoolean {
 
       BooleanOperator::DIFFERENCE => {
         match (left_node_type, right_node_type) {
-          (_, OctreeNodeType::IN) | (OctreeNodeType::OUT, _) => OctreeNodeType::OUT,
           (OctreeNodeType::IN, OctreeNodeType::OUT) => OctreeNodeType::IN,
+          (_, OctreeNodeType::IN) | (OctreeNodeType::OUT, _) => OctreeNodeType::OUT,
           _ => OctreeNodeType::PARTIAL,
         }
       }
