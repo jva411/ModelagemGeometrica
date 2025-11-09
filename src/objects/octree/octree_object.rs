@@ -308,8 +308,9 @@ macro_rules! impl_partial_OctreeObject {
 
       self.volume = self.instanced_cube.instances_transforms
         .iter()
-        .fold(0.0, |acc, t| acc + t.scale.x * t.scale.y * t.scale.z / (1.0 - self.spacing).powi(3))
-        * self.transform.scale.x * self.transform.scale.y * self.transform.scale.z;
+        .fold(0.0, |acc, t| acc
+          + t.scale.x * t.scale.y * t.scale.z / (1.0 - self.spacing).powi(3)
+        );
     }
   }
 }
