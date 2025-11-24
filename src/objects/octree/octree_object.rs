@@ -330,7 +330,7 @@ macro_rules! impl_partial_OctreeObject {
 }
 
 #[macro_export]
-macro_rules! derive_Object {
+macro_rules! octree_derive_Object {
   ($type:ty) => {
     impl Object for $type {
       fn get_id(&self) -> Uuid { self.instanced_cube.id }
@@ -343,7 +343,9 @@ macro_rules! derive_Object {
 
       fn tick(&mut self) { }
 
-      fn draw(&self, program: &Program) { self.instanced_cube.draw_minus_base_transform(program, self.transform.build_model()); }
+      fn draw(&self, program: &Program, _base_transform: Option<Transform>) {
+        self.instanced_cube.draw(program, Some(self.transform.inverse()));
+      }
 
       fn as_octree_object(&self) -> Option<&dyn OctreeObject> { Some(self) }
       fn as_octree_object_mut(&mut self) -> Option<&mut dyn OctreeObject> { Some(self) }

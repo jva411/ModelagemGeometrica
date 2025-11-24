@@ -1,6 +1,6 @@
 #[allow(dead_code)]
 pub struct VAO {
-    pub id: u32,
+  pub id: u32,
 }
 
 #[allow(dead_code)]
@@ -10,6 +10,10 @@ impl VAO {
     unsafe { gl::GenVertexArrays(1, &mut id); }
 
     return VAO { id };
+  }
+
+  pub fn clone(&self) -> Self {
+    Self::new()
   }
 
   pub fn bind(&self) {

@@ -59,11 +59,15 @@ impl Object for Triangle {
   fn as_any(&self) -> &dyn std::any::Any where Self: Sized { self }
   fn as_any_mut(&mut self) -> &mut dyn std::any::Any where Self: Sized { self }
 
-  fn draw(&self, program: &Program) {
+  fn draw(&self, program: &Program, base_transform: Option<Transform>) {
     self.vao.bind();
     self.vbo.bind();
 
-    self.transform.send_to_program(&program);
+    let model_transform = match base_transform {
+      Some(t) => &self.transform.concat(&t),
+      None => &self.transform,
+    };
+    model_transform.send_to_program(&program);
     self.material.send_to_program(&program);
 
     unsafe {

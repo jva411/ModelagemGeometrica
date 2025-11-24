@@ -156,144 +156,142 @@ impl UIManager {
   }
 
   pub fn draw_octree_creation_options(&mut self, ui: &mut Ui) {
-    let NewObjectProperties::Octree(octree_properties) = &mut self.new_object_properties;
-    ui.heading("Primitive");
-    ComboBox::from_label("Select the primitive")
-      .selected_text(format!("{:?}", octree_properties.primitive))
-      .show_ui(ui, |ui| {
-        ui.selectable_value(
-          &mut octree_properties.primitive,
-          OctreePrimitive::Cube,
-          "Cube",
-        );
-        ui.selectable_value(
-          &mut octree_properties.primitive,
-          OctreePrimitive::Sphere,
-          "Sphere",
-        );
-        ui.selectable_value(
-          &mut octree_properties.primitive,
-          OctreePrimitive::Cylinder,
-          "Cylinder",
-        );
-        ui.selectable_value(
-          &mut octree_properties.primitive,
-          OctreePrimitive::Cone,
-          "Cone",
-        );
-        ui.selectable_value(
-          &mut octree_properties.primitive,
-          OctreePrimitive::Mesh,
-          "Mesh",
-        );
-        ui.selectable_value(
-          &mut octree_properties.primitive,
-          OctreePrimitive::Generic,
-          "Load Model",
-        );
+    if let NewObjectProperties::Octree(octree_properties) = &mut self.new_object_properties {
+      ui.heading("Primitive");
+      ComboBox::from_label("Select the primitive")
+        .selected_text(format!("{:?}", octree_properties.primitive))
+        .show_ui(ui, |ui| {
+          ui.selectable_value(
+            &mut octree_properties.primitive,
+            OctreePrimitive::Cube,
+            "Cube",
+          );
+          ui.selectable_value(
+            &mut octree_properties.primitive,
+            OctreePrimitive::Sphere,
+            "Sphere",
+          );
+          ui.selectable_value(
+            &mut octree_properties.primitive,
+            OctreePrimitive::Cylinder,
+            "Cylinder",
+          );
+          ui.selectable_value(
+            &mut octree_properties.primitive,
+            OctreePrimitive::Cone,
+            "Cone",
+          );
+          ui.selectable_value(
+            &mut octree_properties.primitive,
+            OctreePrimitive::Mesh,
+            "Mesh",
+          );
+          ui.selectable_value(
+            &mut octree_properties.primitive,
+            OctreePrimitive::Generic,
+            "Load Model",
+          );
+        });
+
+      ui.separator();
+      ui.heading("Properties");
+      ui.horizontal(|ui| {
+        ui.label("Name: ");
+        ui.text_edit_singleline(&mut octree_properties.name);
       });
 
-    ui.separator();
-    ui.heading("Properties");
-    ui.horizontal(|ui| {
-      ui.label("Name: ");
-      ui.text_edit_singleline(&mut octree_properties.name);
-    });
-
-    match octree_properties.primitive {
-      OctreePrimitive::Sphere => {
-        ui.horizontal(|ui| {
-          ui.label("Radius: ");
-          ui.add(egui::DragValue::new(&mut octree_properties.radius).speed(0.1));
-        });
-      }
-      OctreePrimitive::Cube => {
-        ui.horizontal(|ui| {
-          ui.label("Width: ");
-          ui.add(egui::DragValue::new(&mut octree_properties.size.x).speed(0.1));
-          ui.label("Height: ");
-          ui.add(egui::DragValue::new(&mut octree_properties.size.y).speed(0.1));
-          ui.label("Depth: ");
-          ui.add(egui::DragValue::new(&mut octree_properties.size.z).speed(0.1));
-        });
-      }
-      OctreePrimitive::Cylinder | OctreePrimitive::Cone => {
-        ui.horizontal(|ui| {
-          ui.label("Radius: ");
-          ui.add(egui::DragValue::new(&mut octree_properties.radius).speed(0.1));
-        });
-        ui.horizontal(|ui| {
-          ui.label("Height: ");
-          ui.add(egui::DragValue::new(&mut octree_properties.height).speed(0.1));
-        });
-      }
-      OctreePrimitive::Mesh => {
-        ui.horizontal(|ui| {
-          ui.label("Obj Path: ");
-          let placeholder = if let Some(path) = &octree_properties.obj_path {
-            path.file_stem().unwrap().to_str().unwrap()
-          } else {
-            "Select model"
-          };
-          if ui.button(placeholder).clicked() {
-            let path = FileDialog::new().add_filter("OBJ", &["obj"]).pick_file();
-            let path = path.unwrap();
-            let stem = path.file_stem().unwrap().to_str().unwrap();
-            octree_properties.name = stem.to_string();
-            octree_properties.obj_path = Some(path);
-          }
-        });
-      }
-      OctreePrimitive::Generic => {
-        ui.horizontal(|ui| {
-          ui.label("Octree Path: ");
-          let placeholder = if let Some(path) = &octree_properties.obj_path {
-            path.file_stem().unwrap().to_str().unwrap()
-          } else {
-            "Select octree"
-          };
-          if ui.button(placeholder).clicked() {
-            let path = FileDialog::new().add_filter("OBJ", &["oct"]).pick_file();
-            let path = path.unwrap();
-            let stem = path.file_stem().unwrap().to_str().unwrap();
-            octree_properties.name = stem.to_string();
-            octree_properties.obj_path = Some(path);
-          }
-        });
-      }
-    }
-
-    ui.separator();
-    ui.heading("Octree Properties");
-      ui.horizontal(|ui| {
-        ui.label("Max Tree Depth: ");
-        ui.add(egui::DragValue::new(&mut octree_properties.max_depth));
-    });
-      ui.horizontal(|ui| {
-        ui.label("Spacing: ");
-        ui.add(egui::DragValue::new(&mut octree_properties.spacing).speed(0.01));
-    });
-
-    ui.separator();
-    ui.horizontal(|ui| {
-      let NewObjectProperties::Octree(octree_properties) = self.new_object_properties.clone();
-      let should_enable_creation = (
-        octree_properties.primitive != OctreePrimitive::Mesh
-        && octree_properties.primitive != OctreePrimitive::Generic
-      ) || octree_properties.obj_path.is_some();
-
-        if ui.button("Create").clicked() {
-        if should_enable_creation {
-          self.commands_queue.push(UICommand::CreateObject(NewObjectProperties::Octree(octree_properties.clone())));
-          self.is_add_object_window_open = false;
-          self.new_object_properties = NewObjectProperties::Octree(NewOctreeObjectProperties::default());
+      match octree_properties.primitive {
+        OctreePrimitive::Sphere => {
+          ui.horizontal(|ui| {
+            ui.label("Radius: ");
+            ui.add(egui::DragValue::new(&mut octree_properties.radius).speed(0.1));
+          });
+        }
+        OctreePrimitive::Cube => {
+          ui.horizontal(|ui| {
+            ui.label("Width: ");
+            ui.add(egui::DragValue::new(&mut octree_properties.size.x).speed(0.1));
+            ui.label("Height: ");
+            ui.add(egui::DragValue::new(&mut octree_properties.size.y).speed(0.1));
+            ui.label("Depth: ");
+            ui.add(egui::DragValue::new(&mut octree_properties.size.z).speed(0.1));
+          });
+        }
+        OctreePrimitive::Cylinder | OctreePrimitive::Cone => {
+          ui.horizontal(|ui| {
+            ui.label("Radius: ");
+            ui.add(egui::DragValue::new(&mut octree_properties.radius).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Height: ");
+            ui.add(egui::DragValue::new(&mut octree_properties.height).speed(0.1));
+          });
+        }
+        OctreePrimitive::Mesh => {
+          ui.horizontal(|ui| {
+            ui.label("Obj Path: ");
+            let placeholder = if let Some(path) = &octree_properties.obj_path {
+              path.file_stem().unwrap().to_str().unwrap()
+            } else {
+              "Select model"
+            };
+            if ui.button(placeholder).clicked() {
+              let path = FileDialog::new().add_filter("OBJ", &["obj"]).pick_file();
+              let path = path.unwrap();
+              let stem = path.file_stem().unwrap().to_str().unwrap();
+              octree_properties.name = stem.to_string();
+              octree_properties.obj_path = Some(path);
+            }
+          });
+        }
+        OctreePrimitive::Generic => {
+          ui.horizontal(|ui| {
+            ui.label("Octree Path: ");
+            let placeholder = if let Some(path) = &octree_properties.obj_path {
+              path.file_stem().unwrap().to_str().unwrap()
+            } else {
+              "Select octree"
+            };
+            if ui.button(placeholder).clicked() {
+              let path = FileDialog::new().add_filter("OBJ", &["oct"]).pick_file();
+              let path = path.unwrap();
+              let stem = path.file_stem().unwrap().to_str().unwrap();
+              octree_properties.name = stem.to_string();
+              octree_properties.obj_path = Some(path);
+            }
+          });
         }
       }
-      if ui.button("Cancel").clicked() {
-        self.is_add_object_window_open = false;
-        self.new_object_properties = NewObjectProperties::Octree(NewOctreeObjectProperties::default());
-      }
-    });
+
+      ui.separator();
+      ui.heading("Octree Properties");
+        ui.horizontal(|ui| {
+          ui.label("Max Tree Depth: ");
+          ui.add(egui::DragValue::new(&mut octree_properties.max_depth));
+      });
+        ui.horizontal(|ui| {
+          ui.label("Spacing: ");
+          ui.add(egui::DragValue::new(&mut octree_properties.spacing).speed(0.01));
+      });
+
+      ui.separator();
+      ui.horizontal(|ui| {
+        let should_enable_creation = (
+          octree_properties.primitive != OctreePrimitive::Mesh
+          && octree_properties.primitive != OctreePrimitive::Generic
+        ) || octree_properties.obj_path.is_some();
+
+        if ui.button("Create").clicked() {
+          if should_enable_creation {
+            self.commands_queue.push(UICommand::CreateObject(NewObjectProperties::Octree(octree_properties.clone())));
+            self.is_add_object_window_open = false;
+          }
+        }
+        if ui.button("Cancel").clicked() {
+          self.is_add_object_window_open = false;
+        }
+      });
+    }
   }
 }
 

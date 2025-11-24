@@ -12,6 +12,10 @@ impl VBO {
     return VBO { id };
   }
 
+  pub fn clone(&self) -> Self {
+    Self::new()
+  }
+
   pub fn bind(&self) {
     unsafe { gl::BindBuffer(gl::ARRAY_BUFFER, self.id); }
   }

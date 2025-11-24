@@ -15,7 +15,7 @@ pub trait Object {
   fn get_material(&self) -> &Material;
 
   fn tick(&mut self);
-  fn draw(&self, program: &Program);
+  fn draw(&self, program: &Program, base_transform: Option<Transform>);
 
   fn as_octree_object(&self) -> Option<&dyn OctreeObject> { None }
   fn as_octree_object_mut(&mut self) -> Option<&mut dyn OctreeObject> { None }

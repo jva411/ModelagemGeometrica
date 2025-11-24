@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use glam::Vec3;
 use uuid::Uuid;
 
-use crate::{derive_Object, impl_partial_OctreeObject, objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{AABB, OctreeNode, OctreeNodeType, OctreeObject}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
+use crate::{octree_derive_Object, impl_partial_OctreeObject, objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{AABB, OctreeNode, OctreeNodeType, OctreeObject}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
 pub struct OctreeMesh {
@@ -158,7 +158,7 @@ impl OctreeObject for OctreeMesh {
 }
 
 
-derive_Object!(OctreeMesh);
+octree_derive_Object!(OctreeMesh);
 
 fn tri_box_overlap(boxcenter: Vec3, boxhalfsize: Vec3, trivet0: Vec3, trivet1: Vec3, trivet2: Vec3) -> bool {
   let v0 = trivet0 - boxcenter;

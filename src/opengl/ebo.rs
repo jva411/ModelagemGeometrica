@@ -12,6 +12,10 @@ impl EBO {
     return EBO { id };
   }
 
+  pub fn clone(&self) -> Self {
+    Self::new()
+  }
+
   pub fn bind(&self) {
     unsafe { gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.id); }
   }

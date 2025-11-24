@@ -1,9 +1,9 @@
 use uuid::Uuid;
 
-use crate::{objects::object::Object, opengl::{ebo::EBO, program::Program, vao::VAO, vbo::VBO}, utils::{material::{Material, BLANK}, transform::Transform}};
+use crate::{mesh_implement_partial_Object, objects::{mesh::mesh_object::MeshObject, object::Object, octree::octree_object::OctreeObject}, opengl::{ebo::EBO, program::Program, vao::VAO, vbo::VBO}, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
-pub struct Cube {
+pub struct MeshCube {
   pub id: Uuid,
   pub name: String,
 
@@ -62,11 +62,8 @@ const STRIDE: u32 = (3+3) * SIZE_F32;
 const SKIPS: [u32; 2] = [0, 3 * SIZE_F32];
 
 #[allow(dead_code)]
-impl Cube {
-  pub fn new(transform: Option<Transform>, material: Option<Material>) -> Self {
-    let transform = transform.unwrap_or(Transform::new());
-    let material = material.unwrap_or(BLANK);
-
+impl MeshCube {
+  pub fn new(name: String) -> Self {
     let vao = VAO::new();
     let vbo = VBO::new();
     let ebo = EBO::new();
@@ -83,36 +80,39 @@ impl Cube {
 
     return Self {
       id: Uuid::new_v4(),
-      name: "Cube".to_string(),
-      transform,
-      material,
+      name: name,
+      transform: Transform::new(),
+      material: Material::default(),
       vao,
       vbo,
       ebo,
     };
   }
+
+  pub fn clone(&self) -> Self {
+    Self::new(self.name.clone())
+  }
 }
 
-impl Object for Cube {
-  fn get_id(&self) -> Uuid { self.id }
-  fn get_name(&self) -> String { self.name.clone() }
-  fn get_name_mut(&mut self) -> &mut String { &mut self.name }
+impl MeshObject for MeshCube {
+  fn clone_box(&self) -> Box<dyn MeshObject> {
+    Box::new(self.clone())
+  }
+}
 
-  fn get_transform(&self) -> &Transform { &self.transform }
-  fn get_transform_mut(&mut self) -> &mut Transform { &mut self.transform }
-  fn get_material(&self) -> &Material { &self.material }
+impl Object for MeshCube {
+  mesh_implement_partial_Object!();
 
-  fn as_any(&self) -> &dyn std::any::Any where Self: Sized { self }
-  fn as_any_mut(&mut self) -> &mut dyn std::any::Any where Self: Sized { self }
-
-  fn tick(&mut self) {}
-
-  fn draw(&self, program: &Program) {
+  fn draw(&self, program: &Program, base_transform: Option<Transform>) {
     self.vao.bind();
     self.vbo.bind();
     self.ebo.bind();
 
-    self.transform.send_to_program(&program);
+    let model_transform = match base_transform {
+      Some(t) => &self.transform.concat(&t),
+      None => &self.transform,
+    };
+    model_transform.send_to_program(&program);
     self.material.send_to_program(&program);
 
     unsafe {

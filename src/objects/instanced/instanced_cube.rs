@@ -93,21 +93,6 @@ impl InstancedCube {
       instance_vbo,
     };
   }
-
-  pub fn draw_minus_base_transform(&self, program: &Program, base_model: Mat4) {
-    self.vao.bind();
-    self.vbo.bind();
-    self.ebo.bind();
-
-    self.material.send_to_program(program);
-
-    let model = self.transform.build_model() * base_model.inverse();
-
-    unsafe {
-      program.set_uniform_matrix4f("baseModel", model).expect("Failed to set baseModel uniform");
-      gl::DrawElementsInstanced(gl::TRIANGLES, INDICES.len() as i32, gl::UNSIGNED_INT, 0 as *const _, self.instances_transforms.len() as i32);
-    }
-  }
 }
 
 impl InstacedObject for InstancedCube {
@@ -165,15 +150,20 @@ impl Object for InstancedCube {
 
   fn tick(&mut self) {}
 
-  fn draw(&self, program: &Program) {
+  fn draw(&self, program: &Program, base_transform: Option<Transform>) {
     self.vao.bind();
     self.vbo.bind();
     self.ebo.bind();
 
     self.material.send_to_program(program);
 
+    let model_transform = match base_transform {
+      Some(t) => &self.transform.concat(&t),
+      None => &self.transform,
+    };
+
     unsafe {
-      program.set_uniform_matrix4f("baseModel", self.transform.build_model()).expect("Failed to set baseModel uniform");
+      program.set_uniform_matrix4f("baseModel", model_transform.build_model()).expect("Failed to set baseModel uniform");
       gl::DrawElementsInstanced(gl::TRIANGLES, INDICES.len() as i32, gl::UNSIGNED_INT, 0 as *const _, self.instances_transforms.len() as i32);
     }
   }

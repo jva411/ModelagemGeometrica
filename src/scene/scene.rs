@@ -53,7 +53,7 @@ impl Scene {
       }
 
       for object in &self.objects[i] {
-        object.borrow().draw(program);
+        object.borrow().draw(program, None);
       }
     }
 

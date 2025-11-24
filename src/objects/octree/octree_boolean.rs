@@ -3,7 +3,7 @@ use std::{cell::RefCell, fmt::Display, rc::Rc};
 use glam::Vec3;
 use uuid::Uuid;
 
-use crate::{derive_Object, impl_partial_OctreeObject, objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{AABB, OctreeNode, OctreeNodeType, OctreeObject}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
+use crate::{octree_derive_Object, impl_partial_OctreeObject, objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{AABB, OctreeNode, OctreeNodeType, OctreeObject}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,7 +18,7 @@ impl Display for BooleanOperator {
     match self {
       BooleanOperator::UNION => write!(f, "Union"),
       BooleanOperator::INTERSECTION => write!(f, "Intersection"),
-      BooleanOperator::DIFFERENCE => write!(f, "Diference"),
+      BooleanOperator::DIFFERENCE => write!(f, "Difference"),
     }
   }
 }
@@ -143,4 +143,4 @@ impl OctreeObject for OctreeBoolean {
   }
 }
 
-derive_Object!(OctreeBoolean);
+octree_derive_Object!(OctreeBoolean);

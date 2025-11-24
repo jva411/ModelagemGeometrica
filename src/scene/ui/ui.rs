@@ -4,7 +4,7 @@ use egui::{vec2, ComboBox, FullOutput, SidePanel, Ui, Window as EguiWindow};
 use rfd::FileDialog;
 use uuid::Uuid;
 
-use crate::{objects::octree::octree_boolean::BooleanOperator, opengl::renderer::ProgramType, scene::{scene::Scene, ui::octree_ui::NewOctreeObjectProperties, window::Window}};
+use crate::{objects::{csg::csg_object::CSGObject, octree::octree_boolean::BooleanOperator}, opengl::renderer::ProgramType, scene::{scene::Scene, ui::{csg_ui::NewCSGObjectProperties, octree_ui::NewOctreeObjectProperties}, window::Window}};
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum UITab {
@@ -28,11 +28,13 @@ pub enum UICommand {
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum ObjectType {
   Octree,
+  CSG,
 }
 
 #[derive(Clone, Debug)]
 pub enum NewObjectProperties {
   Octree(NewOctreeObjectProperties),
+  CSG(NewCSGObjectProperties),
 }
 
 #[allow(dead_code)]
@@ -43,6 +45,7 @@ pub struct UIManager {
   pub is_add_object_window_open: bool,
   pub new_object_type: ObjectType,
   pub new_object_properties: NewObjectProperties,
+  pub previous_new_object_type: ObjectType,
 
   pub boolean_operator: BooleanOperator,
   pub selected_boolean_object_id: Option<Uuid>,
@@ -57,6 +60,7 @@ impl UIManager {
       selected_object_id: None,
       is_add_object_window_open: false,
       new_object_type: ObjectType::Octree,
+      previous_new_object_type: ObjectType::Octree,
       new_object_properties: NewObjectProperties::Octree(NewOctreeObjectProperties::default()),
       boolean_operator: BooleanOperator::UNION,
       selected_boolean_object_id: None,
@@ -123,6 +127,8 @@ impl Window {
   fn draw_objects_tab(ui: &mut Ui, ui_manager: &mut UIManager, scene: &mut Scene) {
     if ui.button("Add Object").clicked() {
       ui_manager.is_add_object_window_open = true;
+      ui_manager.new_object_type = ObjectType::Octree;
+      ui_manager.new_object_properties = NewObjectProperties::Octree(NewOctreeObjectProperties::default());
     }
     ui.separator();
 
@@ -202,6 +208,8 @@ impl Window {
 
     if let Some(object) = object.as_octree_object_mut() {
       ui_manager.draw_octree_object_properties(ui, scene, object);
+    } else if let Some(object) = object.as_any_mut().downcast_mut::<CSGObject>() {
+      ui_manager.draw_csg_object_properties(ui, scene);
     }
   }
 
@@ -226,16 +234,36 @@ impl Window {
               ObjectType::Octree,
               "Octree",
             );
+            ui.selectable_value(
+              &mut ui_manager.new_object_type,
+              ObjectType::CSG,
+              "CSG",
+            );
           });
 
         ui.separator();
+
+        if ui_manager.new_object_type != ui_manager.previous_new_object_type {
+          ui_manager.new_object_properties = match ui_manager.new_object_type {
+            ObjectType::Octree => NewObjectProperties::Octree(NewOctreeObjectProperties::default()),
+            ObjectType::CSG => NewObjectProperties::CSG(NewCSGObjectProperties::default()),
+          };
+          ui_manager.previous_new_object_type = ui_manager.new_object_type;
+        }
 
         match ui_manager.new_object_type {
           ObjectType::Octree => {
             ui_manager.draw_octree_creation_options(ui);
           }
+          ObjectType::CSG => {
+            ui_manager.draw_csg_creation_options(ui);
+          }
         }
       });
+
+    if ui_manager.is_add_object_window_open {
+      ui_manager.is_add_object_window_open = is_still_open;
+    }
   }
 
   pub fn process_ui_commands(&mut self) {
@@ -248,6 +276,10 @@ impl Window {
             NewObjectProperties::Octree(props) => {
               let new_object = Window::create_octree_object(props);
               self.scene.add_object(ProgramType::Instanced, new_object);
+            },
+            NewObjectProperties::CSG(props) => {
+              let new_object = Window::create_csg_object(props);
+              self.scene.add_object(ProgramType::Common, new_object);
             }
           }
         }
@@ -259,6 +291,7 @@ impl Window {
         UICommand::ApplyBoolean { object_type, left_id, right_id, operator } => {
           match object_type {
             ObjectType::Octree => self.apply_octree_boolean(left_id, right_id, operator),
+            ObjectType::CSG => self.apply_csg_boolean(left_id, right_id, operator),
           }
         }
 

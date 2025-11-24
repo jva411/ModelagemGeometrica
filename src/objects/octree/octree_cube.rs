@@ -1,7 +1,7 @@
 use glam::Vec3;
 use uuid::Uuid;
 
-use crate::{derive_Object, impl_partial_OctreeObject, objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{AABB, OctreeNode, OctreeNodeType, OctreeObject}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
+use crate::{octree_derive_Object, impl_partial_OctreeObject, objects::{instanced::{instanced_cube::InstancedCube, instanced_object::InstacedObject}, object::Object, octree::octree_object::{AABB, OctreeNode, OctreeNodeType, OctreeObject}}, opengl::program::Program, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
 pub struct OctreeCube {
@@ -69,4 +69,4 @@ impl OctreeObject for OctreeCube {
   }
 }
 
-derive_Object!(OctreeCube);
+octree_derive_Object!(OctreeCube);

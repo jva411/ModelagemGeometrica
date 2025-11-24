@@ -2,7 +2,7 @@ use glam::{Mat4, Quat, Vec3};
 
 use crate::opengl::program::Program;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Rotation {
   pub yaw: f32,
   pub pitch: f32,
@@ -25,7 +25,7 @@ impl Rotation {
   }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Transform {
   pub translation: Vec3,
   pub rotation: Rotation,
@@ -76,6 +76,30 @@ impl Transform {
 
   pub fn send_to_program_instanced(&self, program: &Program, index: i32) {
     program.set_uniform_matrix4f(&format!("models[{}]", index), self.build_model()).unwrap();
+  }
+
+  pub fn concat(&self, other: &Transform) -> Transform {
+    Transform {
+      translation: self.translation + other.translation,
+      rotation: Rotation {
+        yaw: self.rotation.yaw + other.rotation.yaw,
+        pitch: self.rotation.pitch + other.rotation.pitch,
+        roll: self.rotation.roll + other.rotation.roll,
+      },
+      scale: self.scale * other.scale,
+    }
+  }
+
+  pub fn inverse(&self) -> Transform {
+    Transform {
+      translation: -self.translation,
+      rotation: Rotation {
+        yaw: -self.rotation.yaw,
+        pitch: -self.rotation.pitch,
+        roll: -self.rotation.roll,
+      },
+      scale: 1.0 / self.scale,
+    }
   }
 }
 
