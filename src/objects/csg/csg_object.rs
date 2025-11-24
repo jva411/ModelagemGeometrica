@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use glam::Mat4;
 use uuid::Uuid;
 
 use crate::{
@@ -34,17 +35,18 @@ pub enum CSGNode {
 }
 
 impl CSGNode {
-  pub fn draw(&self, program: &Program, base_transform: &Transform) {
+  pub fn draw(&self, program: &Program, parent_model: Mat4) {
     match self {
       CSGNode::Boolean { left, right, .. } => {
-        left.draw(program, base_transform);
-        right.draw(program, base_transform);
+        left.draw(program, parent_model);
+        right.draw(program, parent_model);
       }
       CSGNode::Transform { node, transform } => {
-        node.draw(program, &base_transform.concat(transform));
+        let current_model = parent_model * transform.build_model();
+        node.draw(program, current_model);
       }
       CSGNode::Primitive { object } => {
-        object.draw(program, Some(base_transform.clone()));
+        object.csg_draw(program, parent_model);
       }
     }
   }
@@ -71,6 +73,7 @@ impl CSGNode {
   }
 }
 
+#[allow(dead_code)]
 pub struct CSGObject {
   pub id: Uuid,
   pub name: String,
@@ -124,6 +127,13 @@ impl Object for CSGObject {
   mesh_implement_partial_Object!();
 
   fn draw(&self, program: &Program, _base_transform: Option<Transform>) {
-    self.root.draw(program, &self.transform);
+    let base_matrix = match _base_transform {
+      Some(t) => t.build_model(),
+      None => Mat4::IDENTITY,
+    };
+
+    let root_matrix = base_matrix * self.transform.build_model();
+
+    self.root.draw(program, root_matrix);
   }
 }

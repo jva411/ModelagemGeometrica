@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use egui::{ComboBox, Ui};
 use uuid::Uuid;
 
-use crate::{objects::{csg::csg_object::{CSGObject, CSGPrimitives}, object::Object, octree::octree_boolean::BooleanOperator}, scene::{scene::Scene, ui::ui::{NewObjectProperties, ObjectType, UICommand, UIManager}, window::Window}};
+use crate::{objects::{csg::csg_object::{CSGObject, CSGPrimitives}, octree::octree_boolean::BooleanOperator}, scene::{scene::Scene, ui::ui::{NewObjectProperties, ObjectType, UICommand, UIManager}, window::Window}};
 
 #[derive(Clone, Debug)]
 pub struct NewCSGObjectProperties {
@@ -23,10 +23,6 @@ impl Default for NewCSGObjectProperties {
 impl UIManager {
   pub fn draw_csg_object_properties(&mut self, ui: &mut Ui, scene: &Scene) {
     let selected_id = self.selected_object_id.unwrap();
-    // let any_mut = object.as_any_mut();
-
-    // if let Some(cube) = any_mut.downcast_mut::<CSGObject>() {
-    // }
 
     ui.separator();
     ui.heading("Boolean Operation");

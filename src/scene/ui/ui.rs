@@ -208,7 +208,7 @@ impl Window {
 
     if let Some(object) = object.as_octree_object_mut() {
       ui_manager.draw_octree_object_properties(ui, scene, object);
-    } else if let Some(object) = object.as_any_mut().downcast_mut::<CSGObject>() {
+    } else if object.as_any_mut().is::<CSGObject>() {
       ui_manager.draw_csg_object_properties(ui, scene);
     }
   }

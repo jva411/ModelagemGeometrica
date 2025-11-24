@@ -98,6 +98,20 @@ impl MeshObject for MeshCube {
   fn clone_box(&self) -> Box<dyn MeshObject> {
     Box::new(self.clone())
   }
+
+  fn csg_draw(&self, program: &Program, base_model: glam::Mat4) {
+    self.vao.bind();
+    self.vbo.bind();
+    self.ebo.bind();
+
+    let final_model = base_model * self.transform.build_model();
+    program.set_uniform_matrix4f("model", final_model).unwrap();
+    self.material.send_to_program(&program);
+
+    unsafe {
+      gl::DrawElements(gl::TRIANGLES, INDICES.len() as i32, gl::UNSIGNED_INT, 0 as *const _);
+    }
+  }
 }
 
 impl Object for MeshCube {

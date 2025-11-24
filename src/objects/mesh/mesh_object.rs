@@ -1,7 +1,10 @@
-use crate::objects::object::Object;
+use glam::Mat4;
+
+use crate::{objects::object::Object, opengl::program::Program};
 
 pub trait MeshObject: Object {
   fn clone_box(&self) -> Box<dyn MeshObject>;
+  fn csg_draw(&self, program: &Program, base_model: Mat4);
 }
 
 #[macro_export]
