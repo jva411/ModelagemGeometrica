@@ -60,7 +60,7 @@ const INDICES: [u32; 3 * 2 * 6] = [
   20, 22, 21,  20, 23, 22,  // Bottom
 ];
 
-const SIZE_F32: u32 = size_of::<f32>() as u32;
+pub const SIZE_F32: u32 = size_of::<f32>() as u32;
 const STRIDE: u32 = (3+3) * SIZE_F32;
 const SKIPS: [u32; 2] = [0, 3 * SIZE_F32];
 

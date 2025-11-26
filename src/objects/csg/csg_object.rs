@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
   mesh_implement_partial_Object,
   objects::{
-    mesh::{mesh_cube::MeshCube, mesh_object::MeshObject},
+    mesh::{mesh_cone::MeshCone, mesh_cube::MeshCube, mesh_cylinder::MeshCylinder, mesh_object::MeshObject, mesh_sphere::MeshSphere},
     object::Object,
     octree::{octree_boolean::BooleanOperator, octree_object::OctreeObject},
   },
@@ -17,6 +17,9 @@ use crate::{
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CSGPrimitives {
   Cube,
+  Sphere,
+  Cylinder,
+  Cone,
 }
 
 pub enum CSGNode {
@@ -84,20 +87,46 @@ pub struct CSGObject {
 }
 
 impl CSGObject {
-  pub fn new(primitive: CSGPrimitives, name: String) -> Self {
-    let primitive_node = match primitive {
-      CSGPrimitives::Cube => CSGNode::Primitive {
-        object: Box::new(MeshCube::new(name.clone())),
-      },
-    };
-
+  fn new(name: String, root: CSGNode) -> Self {
     CSGObject {
       id: Uuid::new_v4(),
       name,
       transform: Transform::new(),
       material: Material::default(),
-      root: primitive_node,
+      root,
     }
+  }
+
+  pub fn new_cube(name: String) -> Self {
+    let primitive_node = CSGNode::Primitive {
+      object: Box::new(MeshCube::new(name.clone())),
+    };
+
+    CSGObject::new(name, primitive_node)
+  }
+
+  pub fn new_sphere(name: String, radius: f32, _subdivisions: u32) -> Self {
+    let primitive_node = CSGNode::Primitive {
+      object: Box::new(MeshSphere::new(name.clone(), radius, _subdivisions)),
+    };
+
+    CSGObject::new(name, primitive_node)
+  }
+
+  pub fn new_cylinder(name: String, radius: f32, height: f32, _subdivisions: u32) -> Self {
+    let primitive_node = CSGNode::Primitive {
+      object: Box::new(MeshCylinder::new(name.clone(), radius, height, _subdivisions)),
+    };
+
+    CSGObject::new(name, primitive_node)
+  }
+
+  pub fn new_cone(name: String, radius: f32, height: f32, _subdivisions: u32) -> Self {
+    let primitive_node = CSGNode::Primitive {
+      object: Box::new(MeshCone::new(name.clone(), radius, height, _subdivisions)),
+    };
+
+    CSGObject::new(name, primitive_node)
   }
 
   pub fn boolean(&mut self, right: &CSGObject, operator: BooleanOperator) {

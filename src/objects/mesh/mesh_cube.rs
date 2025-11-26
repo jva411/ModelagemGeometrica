@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::{mesh_implement_partial_Object, objects::{mesh::mesh_object::MeshObject, object::Object, octree::octree_object::OctreeObject}, opengl::{ebo::EBO, program::Program, vao::VAO, vbo::VBO}, utils::{material::Material, transform::Transform}};
+use crate::{mesh_implement_partial_Object, objects::{instanced::instanced_cube::SIZE_F32, mesh::mesh_object::MeshObject, object::Object, octree::octree_object::OctreeObject}, opengl::{ebo::EBO, program::Program, vao::VAO, vbo::VBO}, utils::{material::Material, transform::Transform}};
 
 #[allow(dead_code)]
 pub struct MeshCube {
@@ -57,7 +57,6 @@ const INDICES: [u32; 3 * 2 * 6] = [
   20, 22, 21,  20, 23, 22,  // Bottom
 ];
 
-const SIZE_F32: u32 = size_of::<f32>() as u32;
 const STRIDE: u32 = (3+3) * SIZE_F32;
 const SKIPS: [u32; 2] = [0, 3 * SIZE_F32];
 

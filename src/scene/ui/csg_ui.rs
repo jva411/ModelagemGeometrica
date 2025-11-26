@@ -9,13 +9,19 @@ use crate::{objects::{csg::csg_object::{CSGObject, CSGPrimitives}, octree::octre
 pub struct NewCSGObjectProperties {
   primitive: CSGPrimitives,
   name: String,
+  radius: f32,
+  height: f32,
+  subdivisions: u32,
 }
 
 impl Default for NewCSGObjectProperties {
   fn default() -> Self {
     NewCSGObjectProperties {
-      primitive: CSGPrimitives::Cube,
-      name: String::from("Cube"),
+      primitive: CSGPrimitives::Cone,
+      name: String::from("Cone"),
+      subdivisions: 30,
+      height: 2.0,
+      radius: 1.0,
     }
   }
 }
@@ -72,8 +78,23 @@ impl UIManager {
       .show_ui(ui, |ui| {
         ui.selectable_value(
           &mut props.primitive,
+          CSGPrimitives::Sphere,
+          "Sphere",
+        );
+        ui.selectable_value(
+          &mut props.primitive,
           CSGPrimitives::Cube,
           "Cube",
+        );
+        ui.selectable_value(
+          &mut props.primitive,
+          CSGPrimitives::Cylinder,
+          "Cylinder",
+        );
+        ui.selectable_value(
+          &mut props.primitive,
+          CSGPrimitives::Cone,
+          "Cone",
         );
       });
 
@@ -85,7 +106,31 @@ impl UIManager {
       });
 
       match props.primitive {
-        CSGPrimitives::Cube => { }
+        CSGPrimitives::Cube => { },
+        CSGPrimitives::Sphere => {
+          ui.horizontal(|ui| {
+            ui.label("Radius: ");
+            ui.add(egui::DragValue::new(&mut props.radius).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Subdivisions: ");
+            ui.add(egui::DragValue::new(&mut props.subdivisions).range(0..=100).speed(1));
+          });
+        },
+        CSGPrimitives::Cylinder | CSGPrimitives::Cone => {
+          ui.horizontal(|ui| {
+            ui.label("Radius: ");
+            ui.add(egui::DragValue::new(&mut props.radius).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Height: ");
+            ui.add(egui::DragValue::new(&mut props.height).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Subdivisions: ");
+            ui.add(egui::DragValue::new(&mut props.subdivisions).range(4..=100).speed(1));
+          });
+        }
       }
 
       ui.separator();
@@ -108,9 +153,25 @@ impl UIManager {
 impl Window {
   pub fn create_csg_object(props: NewCSGObjectProperties) -> Rc<RefCell<CSGObject>> {
     match props.primitive {
-      CSGPrimitives::Cube => Rc::new(RefCell::new(CSGObject::new(
-        CSGPrimitives::Cube,
+      CSGPrimitives::Cube => Rc::new(RefCell::new(CSGObject::new_cube(
         props.name,
+      ))),
+      CSGPrimitives::Sphere => Rc::new(RefCell::new(CSGObject::new_sphere(
+        props.name,
+        props.radius,
+        props.subdivisions,
+      ))),
+      CSGPrimitives::Cylinder => Rc::new(RefCell::new(CSGObject::new_cylinder(
+        props.name,
+        props.radius,
+        props.height,
+        props.subdivisions,
+      ))),
+      CSGPrimitives::Cone => Rc::new(RefCell::new(CSGObject::new_cone(
+        props.name,
+        props.radius,
+        props.height,
+        props.subdivisions,
       ))),
     }
   }
