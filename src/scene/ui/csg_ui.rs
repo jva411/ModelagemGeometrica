@@ -1,6 +1,7 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, fs::File, io::BufReader, path::PathBuf, rc::Rc};
 
 use egui::{ComboBox, Ui};
+use rfd::FileDialog;
 use uuid::Uuid;
 
 use crate::{objects::{csg::csg_object::{CSGObject, CSGPrimitives}, octree::octree_boolean::BooleanOperator}, scene::{scene::Scene, ui::ui::{NewObjectProperties, ObjectType, UICommand, UIManager}, window::Window}};
@@ -12,16 +13,18 @@ pub struct NewCSGObjectProperties {
   radius: f32,
   height: f32,
   subdivisions: u32,
+  obj_path: Option<PathBuf>,
 }
 
 impl Default for NewCSGObjectProperties {
   fn default() -> Self {
     NewCSGObjectProperties {
-      primitive: CSGPrimitives::Cone,
-      name: String::from("Cone"),
+      primitive: CSGPrimitives::Sphere,
+      name: String::from("New Object"),
       subdivisions: 30,
       height: 2.0,
       radius: 1.0,
+      obj_path: None,
     }
   }
 }
@@ -96,6 +99,11 @@ impl UIManager {
           CSGPrimitives::Cone,
           "Cone",
         );
+        ui.selectable_value(
+          &mut props.primitive,
+          CSGPrimitives::Generic,
+          "Generic"
+        );
       });
 
       ui.separator();
@@ -106,7 +114,7 @@ impl UIManager {
       });
 
       match props.primitive {
-        CSGPrimitives::Cube => { },
+        CSGPrimitives::Cube => {},
         CSGPrimitives::Sphere => {
           ui.horizontal(|ui| {
             ui.label("Radius: ");
@@ -130,6 +138,21 @@ impl UIManager {
             ui.label("Subdivisions: ");
             ui.add(egui::DragValue::new(&mut props.subdivisions).range(4..=100).speed(1));
           });
+        },
+        CSGPrimitives::Generic => {
+          ui.label("CSG File: ");
+          let placeholder = if let Some(path) = &props.obj_path {
+            path.file_stem().unwrap().to_str().unwrap()
+          } else {
+            "Select csg"
+          };
+          if ui.button(placeholder).clicked() {
+            let path = FileDialog::new().add_filter("CSG", &["csg"]).pick_file();
+            let path = path.unwrap();
+            let stem = path.file_stem().unwrap().to_str().unwrap();
+            props.name = stem.to_string();
+            props.obj_path = Some(path);
+          }
         }
       }
 
@@ -173,6 +196,14 @@ impl Window {
         props.height,
         props.subdivisions,
       ))),
+      CSGPrimitives::Generic => {
+        let path = props.obj_path.unwrap();
+        let file = File::open(path).unwrap();
+        let mut reader = BufReader::new(file);
+
+        let csg_object = CSGObject::deserialize(props.name, &mut reader).unwrap();
+        Rc::new(RefCell::new(csg_object))
+      },
     }
   }
 

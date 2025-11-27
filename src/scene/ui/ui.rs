@@ -22,7 +22,7 @@ pub enum UICommand {
     right_id: Uuid,
     operator: BooleanOperator,
   },
-  SaveOctree(Uuid),
+  SaveObject(Uuid),
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -164,7 +164,7 @@ impl Window {
     ui.separator();
     ui.horizontal(|ui| {
       if ui.button("Save Object").clicked() {
-        ui_manager.commands_queue.push(UICommand::SaveOctree(selected_id));
+        ui_manager.commands_queue.push(UICommand::SaveObject(selected_id));
       }
 
       let delete_button = egui::Button::new("Delete Object").fill(egui::Color32::from_rgb(180, 40, 40));
@@ -295,7 +295,7 @@ impl Window {
           }
         }
 
-        UICommand::SaveOctree(id) => {
+        UICommand::SaveObject(id) => {
           if let Some(object) = self.scene.objects_by_id.get(&id) {
             let object = object.borrow();
             if let Some(octree_object) = object.as_octree_object() {
@@ -304,6 +304,12 @@ impl Window {
                 if let Some(root) = octree_object.get_root() {
                   root.serialize(&mut file);
                 }
+              }
+            }
+            else if let Some(csg_object) = object.as_any().downcast_ref::<CSGObject>() {
+              if let Some(path) = FileDialog::new().add_filter("csg", &["csg"]).save_file() {
+                let mut file = File::create(path).unwrap();
+                csg_object.serialize(&mut file).unwrap();
               }
             }
           }

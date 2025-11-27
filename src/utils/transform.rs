@@ -1,6 +1,8 @@
+use std::io::Write;
+
 use glam::{Mat4, Quat, Vec3};
 
-use crate::opengl::program::Program;
+use crate::{objects::instanced::instanced_cube::SIZE_F32, opengl::program::Program};
 
 #[derive(Debug, Clone)]
 pub struct Rotation {
@@ -10,7 +12,15 @@ pub struct Rotation {
 }
 
 impl Rotation {
-  pub fn new() -> Self {
+  pub fn new(yaw: f32, pitch: f32, roll: f32) -> Self {
+    Rotation {
+      yaw,
+      pitch,
+      roll,
+    }
+  }
+
+  const fn zero() -> Self {
     Rotation {
       yaw: 0.0,
       pitch: 0.0,
@@ -37,7 +47,7 @@ impl Transform {
   pub fn new() -> Self {
     Transform {
       translation: Vec3::ZERO,
-      rotation: Rotation::new(),
+      rotation: Rotation::zero(),
       scale: Vec3::ONE,
     }
   }
@@ -100,6 +110,55 @@ impl Transform {
       },
       scale: 1.0 / self.scale,
     }
+  }
+
+  pub fn serialize(&self, writer: &mut impl Write) -> std::io::Result<()> {
+    writer.write_all(&self.translation.x.to_be_bytes())?;
+    writer.write_all(&self.translation.y.to_be_bytes())?;
+    writer.write_all(&self.translation.z.to_be_bytes())?;
+
+    writer.write_all(&self.rotation.yaw.to_be_bytes())?;
+    writer.write_all(&self.rotation.pitch.to_be_bytes())?;
+    writer.write_all(&self.rotation.roll.to_be_bytes())?;
+
+    writer.write_all(&self.scale.x.to_be_bytes())?;
+    writer.write_all(&self.scale.y.to_be_bytes())?;
+    writer.write_all(&self.scale.z.to_be_bytes())?;
+
+    Ok(())
+  }
+
+  pub fn deserialize(reader: &mut impl std::io::Read) -> std::io::Result<Self> {
+    let mut buffer = [0; 9 * SIZE_F32 as usize];
+    reader.read_exact(&mut buffer)?;
+
+    let mut buffer = buffer
+      .chunks(SIZE_F32 as usize)
+      .map(|chunk| f32::from_be_bytes(chunk.try_into().unwrap()));
+
+    let translation = Vec3::new(
+      buffer.next().unwrap(),
+      buffer.next().unwrap(),
+      buffer.next().unwrap(),
+    );
+
+    let rotation = Rotation::new(
+      buffer.next().unwrap(),
+      buffer.next().unwrap(),
+      buffer.next().unwrap(),
+    );
+
+    let scale = Vec3::new(
+      buffer.next().unwrap(),
+      buffer.next().unwrap(),
+      buffer.next().unwrap(),
+    );
+
+    Ok(Transform {
+      translation,
+      rotation,
+      scale,
+    })
   }
 }
 

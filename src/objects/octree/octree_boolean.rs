@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Display, rc::Rc};
+use std::{cell::RefCell, fmt::Display, io::Write, rc::Rc};
 
 use glam::Vec3;
 use uuid::Uuid;
@@ -20,6 +20,31 @@ impl Display for BooleanOperator {
       BooleanOperator::INTERSECTION => write!(f, "Intersection"),
       BooleanOperator::DIFFERENCE => write!(f, "Difference"),
     }
+  }
+}
+
+impl BooleanOperator {
+  pub fn serialize(&self, writer: &mut impl Write) -> std::io::Result<()> {
+    match self {
+      BooleanOperator::UNION => writer.write_all(b"0")?,
+      BooleanOperator::INTERSECTION => writer.write_all(b"1")?,
+      BooleanOperator::DIFFERENCE => writer.write_all(b"2")?,
+    }
+
+    Ok(())
+  }
+
+  pub fn deserialize(reader: &mut impl std::io::Read) -> std::io::Result<Self> {
+    let mut buffer = [0u8; 1];
+    reader.read_exact(&mut buffer)?;
+    let operator = match buffer[0] {
+      b'0' => BooleanOperator::UNION,
+      b'1' => BooleanOperator::INTERSECTION,
+      b'2' => BooleanOperator::DIFFERENCE,
+      _ => panic!("Invalid boolean operator"),
+    };
+
+    Ok(operator)
   }
 }
 
