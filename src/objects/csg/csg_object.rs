@@ -267,6 +267,32 @@ impl CSGObject {
     CSGObject::new(name, primitive_node)
   }
 
+  pub fn rebuild(&mut self) {
+    match &mut self.root {
+      CSGNode::Primitive { primitive, object, .. } => {
+        match primitive {
+          CSGPrimitives::Cube => {
+            *object = Box::new(MeshCube::new(self.name.clone()));
+          },
+          CSGPrimitives::Sphere => {
+            let old_sphere = object.as_any().downcast_ref::<MeshSphere>().unwrap();
+            *object = Box::new(MeshSphere::new(self.name.clone(), old_sphere.radius, old_sphere.subdivisions));
+          },
+          CSGPrimitives::Cylinder => {
+            let old_cylinder = object.as_any().downcast_ref::<MeshCylinder>().unwrap();
+            *object = Box::new(MeshCylinder::new(self.name.clone(), old_cylinder.radius, old_cylinder.height, old_cylinder.subdivisions));
+          },
+          CSGPrimitives::Cone => {
+            let old_cone = object.as_any().downcast_ref::<MeshCone>().unwrap();
+            *object = Box::new(MeshCone::new(self.name.clone(), old_cone.radius, old_cone.height, old_cone.subdivisions));
+          },
+          _ => {}
+        }
+      }
+      _ => {}
+    }
+  }
+
   pub fn boolean(&mut self, right: &CSGObject, operator: BooleanOperator) {
     let left_transform_node = CSGNode::Transform {
       node: Box::new(self.root.clone()),
@@ -308,6 +334,16 @@ impl CSGObject {
         Ok(csg_object)
       },
       _ => panic!("Invalid root node"),
+    }
+  }
+
+  pub fn clone(&self) -> Self {
+    CSGObject {
+      id: Uuid::new_v4(),
+      name: self.name.clone(),
+      transform: self.transform.clone(),
+      material: self.material.clone(),
+      root: self.root.clone(),
     }
   }
 }

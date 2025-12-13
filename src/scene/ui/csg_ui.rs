@@ -4,7 +4,7 @@ use egui::{ComboBox, Ui};
 use rfd::FileDialog;
 use uuid::Uuid;
 
-use crate::{objects::{csg::csg_object::{CSGObject, CSGPrimitives}, octree::octree_boolean::BooleanOperator}, scene::{scene::Scene, ui::ui::{NewObjectProperties, ObjectType, UICommand, UIManager}, window::Window}};
+use crate::{objects::{csg::csg_object::{CSGNode, CSGObject, CSGPrimitives}, mesh::{mesh_cylinder::MeshCylinder, mesh_sphere::MeshSphere}, octree::octree_boolean::BooleanOperator}, scene::{scene::Scene, ui::ui::{NewObjectProperties, ObjectType, UICommand, UIManager}, window::Window}};
 
 #[derive(Clone, Debug)]
 pub struct NewCSGObjectProperties {
@@ -30,8 +30,65 @@ impl Default for NewCSGObjectProperties {
 }
 
 impl UIManager {
-  pub fn draw_csg_object_properties(&mut self, ui: &mut Ui, scene: &Scene) {
+  pub fn draw_csg_object_properties(&mut self, ui: &mut Ui, scene: &Scene, object: &mut CSGObject) {
     let selected_id = self.selected_object_id.unwrap();
+
+    if let CSGNode::Primitive { primitive, object: mesh_object } = &mut object.root {
+      match primitive {
+        CSGPrimitives::Cube => {
+          ui.label("Cube Properties");
+        },
+        CSGPrimitives::Sphere => {
+          ui.label("Sphere Properties");
+          let object = mesh_object.as_any_mut().downcast_mut::<MeshSphere>().unwrap();
+          ui.horizontal(|ui| {
+            ui.label("Radius: ");
+            ui.add(egui::DragValue::new(&mut object.radius).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Subdivisions: ");
+            ui.add(egui::DragValue::new(&mut object.subdivisions).range(0..=100).speed(1));
+          });
+        },
+        CSGPrimitives::Cylinder => {
+          ui.label("Cylinder Properties");
+          let object = mesh_object.as_any_mut().downcast_mut::<MeshCylinder>().unwrap();
+          ui.horizontal(|ui| {
+            ui.label("Radius: ");
+            ui.add(egui::DragValue::new(&mut object.radius).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Height: ");
+            ui.add(egui::DragValue::new(&mut object.height).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Subdivisions: ");
+            ui.add(egui::DragValue::new(&mut object.subdivisions).range(4..=100).speed(1));
+          });
+        },
+        CSGPrimitives::Cone => {
+          ui.label("Cone Properties");
+          let object = mesh_object.as_any_mut().downcast_mut::<MeshCylinder>().unwrap();
+          ui.horizontal(|ui: &mut Ui| {
+            ui.label("Radius: ");
+            ui.add(egui::DragValue::new(&mut object.radius).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Height: ");
+            ui.add(egui::DragValue::new(&mut object.height).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Subdivisions: ");
+            ui.add(egui::DragValue::new(&mut object.subdivisions).range(4..=100).speed(1));
+          });
+        },
+        _ => {},
+      }
+
+      if ui.button("Apply").clicked() {
+        object.rebuild();
+      }
+    }
 
     ui.separator();
     ui.heading("Boolean Operation");

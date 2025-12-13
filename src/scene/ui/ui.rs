@@ -1,10 +1,10 @@
-use std::fs::File;
+use std::{cell::RefCell, fs::File, rc::Rc};
 
 use egui::{vec2, ComboBox, FullOutput, SidePanel, Ui, Window as EguiWindow};
 use rfd::FileDialog;
 use uuid::Uuid;
 
-use crate::{objects::{csg::csg_object::CSGObject, octree::octree_boolean::BooleanOperator}, opengl::renderer::ProgramType, scene::{scene::Scene, ui::{csg_ui::NewCSGObjectProperties, octree_ui::NewOctreeObjectProperties}, window::Window}};
+use crate::{objects::{csg::csg_object::CSGObject, object::Object, octree::octree_boolean::BooleanOperator}, opengl::renderer::ProgramType, scene::{scene::Scene, ui::{csg_ui::NewCSGObjectProperties, octree_ui::NewOctreeObjectProperties}, window::Window}};
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum UITab {
@@ -16,6 +16,7 @@ pub enum UITab {
 pub enum UICommand {
   CreateObject(NewObjectProperties),
   DeleteObject(Uuid),
+  CopyObject(Uuid),
   ApplyBoolean {
     object_type: ObjectType,
     left_id: Uuid,
@@ -35,6 +36,12 @@ pub enum ObjectType {
 pub enum NewObjectProperties {
   Octree(NewOctreeObjectProperties),
   CSG(NewCSGObjectProperties),
+}
+
+impl Default for NewObjectProperties {
+  fn default() -> Self {
+    NewObjectProperties::CSG(NewCSGObjectProperties::default())
+  }
 }
 
 #[allow(dead_code)]
@@ -61,7 +68,7 @@ impl UIManager {
       is_add_object_window_open: false,
       new_object_type: ObjectType::Octree,
       previous_new_object_type: ObjectType::Octree,
-      new_object_properties: NewObjectProperties::Octree(NewOctreeObjectProperties::default()),
+      new_object_properties: NewObjectProperties::CSG(NewCSGObjectProperties::default()),
       boolean_operator: BooleanOperator::UNION,
       selected_boolean_object_id: None,
       commands_queue: Vec::new(),
@@ -127,8 +134,8 @@ impl Window {
   fn draw_objects_tab(ui: &mut Ui, ui_manager: &mut UIManager, scene: &mut Scene) {
     if ui.button("Add Object").clicked() {
       ui_manager.is_add_object_window_open = true;
-      ui_manager.new_object_type = ObjectType::Octree;
-      ui_manager.new_object_properties = NewObjectProperties::Octree(NewOctreeObjectProperties::default());
+      ui_manager.new_object_type = ObjectType::CSG;
+      ui_manager.new_object_properties = NewObjectProperties::default();
     }
     ui.separator();
 
@@ -171,6 +178,12 @@ impl Window {
       if ui.add(delete_button).clicked() {
         ui_manager.commands_queue.push(UICommand::DeleteObject(selected_id));
       }
+
+      if let Some(..) = object.as_any().downcast_ref::<CSGObject>() {
+        if ui.button("Copy Object").clicked() {
+          ui_manager.commands_queue.push(UICommand::CopyObject(selected_id));
+        }
+      }
     });
     ui.separator();
 
@@ -209,7 +222,7 @@ impl Window {
     if let Some(object) = object.as_octree_object_mut() {
       ui_manager.draw_octree_object_properties(ui, scene, object);
     } else if object.as_any_mut().is::<CSGObject>() {
-      ui_manager.draw_csg_object_properties(ui, scene);
+      ui_manager.draw_csg_object_properties(ui, scene, object.as_any_mut().downcast_mut::<CSGObject>().unwrap());
     }
   }
 
@@ -286,7 +299,29 @@ impl Window {
 
         UICommand::DeleteObject(id) => {
           self.scene.remove_object(id);
-        },
+        }
+
+        UICommand::CopyObject(id) => {
+          let object = self.scene.objects_by_id.get(&id);
+          if let None = object {
+            continue;
+          }
+
+          let object = object.unwrap().clone();
+          let object = object.borrow();
+          let csg_object = object.as_any().downcast_ref::<CSGObject>();
+          if let None = csg_object {
+            continue;
+          }
+
+          let csg_object = csg_object.unwrap();
+          let mut new_csg_object = csg_object.clone();
+          let new_id = new_csg_object.id;
+          new_csg_object.name = format!("{} Copy", csg_object.get_name());
+          let new_object_rc = Rc::new(RefCell::new(new_csg_object));
+          self.scene.add_object(ProgramType::Common, new_object_rc.clone());
+          self.ui_manager.selected_object_id = Some(new_id);
+        }
 
         UICommand::ApplyBoolean { object_type, left_id, right_id, operator } => {
           match object_type {
@@ -299,7 +334,7 @@ impl Window {
           if let Some(object) = self.scene.objects_by_id.get(&id) {
             let object = object.borrow();
             if let Some(octree_object) = object.as_octree_object() {
-              if let Some(path) = FileDialog::new().add_filter("oct", &["oct"]).save_file() {
+              if let Some(path) = FileDialog::new().add_filter("oct", &["oct"]).set_file_name(format!("{}.oct", object.get_name())).save_file() {
                 let mut file = File::create(path).unwrap();
                 if let Some(root) = octree_object.get_root() {
                   root.serialize(&mut file);
@@ -307,7 +342,7 @@ impl Window {
               }
             }
             else if let Some(csg_object) = object.as_any().downcast_ref::<CSGObject>() {
-              if let Some(path) = FileDialog::new().add_filter("csg", &["csg"]).save_file() {
+              if let Some(path) = FileDialog::new().add_filter("csg", &["csg"]).set_file_name(format!("{}.csg", object.get_name())).save_file() {
                 let mut file = File::create(path).unwrap();
                 csg_object.serialize(&mut file).unwrap();
               }
