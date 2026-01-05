@@ -9,6 +9,7 @@ pub mod ShaderType {
 
     pub const VERTEX: Type = Type { gl_type: gl::VERTEX_SHADER };
     pub const FRAGMENT: Type = Type { gl_type: gl::FRAGMENT_SHADER };
+    pub const COMPUTE: Type = Type { gl_type: gl::COMPUTE_SHADER };
 }
 
 #[allow(dead_code)]

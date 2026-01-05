@@ -1,17 +1,18 @@
 use std::{fs::File, rc::Rc};
 
-use crate::opengl::{program::Program, shaders::Shaders};
+use crate::opengl::{program::Program, shader::{Shader, ShaderType}, shaders::Shaders};
 
 #[allow(dead_code)]
 pub enum ProgramType {
   Common,
   Instanced,
   Grid,
+  RayTracingCompute,
 }
 
 #[allow(dead_code)]
 pub struct Renderer {
-  pub programs: [Rc<Program>; 3],
+  pub programs: [Rc<Program>; 4],
   pub current_program: Rc<Program>,
 }
 
@@ -33,9 +34,13 @@ impl Renderer {
     let grid_shaders = Shaders::from_files(&grid_vertex_shader_file, &grid_fragment_shader_file)?;
     let grid_program = Program::new(grid_shaders);
 
+    let raytracing_compute_shader_file = File::open("assets/shaders/compute/raytracing.glsl").expect("Failed to open raytracing compute shader file");
+    let raytracing_shader = Shader::from_file(ShaderType::COMPUTE, &raytracing_compute_shader_file)?;
+    let raytracing_program = Program::new_compute(raytracing_shader);
+
     let current_program = Rc::new(program);
     return Some(Renderer {
-      programs: [current_program.clone(), Rc::new(instanced_program), Rc::new(grid_program)],
+      programs: [current_program.clone(), Rc::new(instanced_program), Rc::new(grid_program), Rc::new(raytracing_program)],
       current_program,
     });
   }
@@ -63,6 +68,18 @@ impl Renderer {
 
       gl::Enable(gl::DEPTH_TEST);
       gl::Enable(gl::CULL_FACE);
+    }
+  }
+
+  pub fn dispatch_compute(&self, width: u32, height: u32) {
+    unsafe {
+      gl::DispatchCompute(
+        (width + 7) / 8,
+        (height + 7) / 8,
+        1,
+      );
+
+      gl::MemoryBarrier(gl::SHADER_IMAGE_ACCESS_BARRIER_BIT);
     }
   }
 

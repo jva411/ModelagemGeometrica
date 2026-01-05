@@ -2,12 +2,17 @@
 use gl::{AttachShader, CreateProgram, GetUniformLocation, LinkProgram, UseProgram};
 use glam::{Mat4, Vec3};
 
-use crate::opengl::shaders::Shaders;
+use crate::opengl::{shader::Shader, shaders::Shaders};
+
+pub enum ProgramShaders {
+  Common { shaders: Shaders },
+  Compute { shader: Shader },
+}
 
 #[allow(dead_code)]
 pub struct Program {
   pub id: u32,
-  pub shaders: Shaders,
+  pub shaders: ProgramShaders,
 }
 
 #[allow(dead_code)]
@@ -23,18 +28,41 @@ impl Program {
       let mut success = 0;
       gl::GetProgramiv(id, gl::LINK_STATUS, &mut success);
       if success == 0 {
-          let mut len = 0;
-          gl::GetProgramiv(id, gl::INFO_LOG_LENGTH, &mut len);
-          let mut log_buffer: Vec<u8> = Vec::with_capacity(len.try_into().unwrap());
-          gl::GetProgramInfoLog(id, len, &mut len, log_buffer.as_mut_ptr().cast());
-          log_buffer.set_len(len.try_into().unwrap());
-          let log = String::from_utf8(log_buffer).unwrap();
-          println!("Falha ao linkar o Shader Program:\n\t{}", log);
+        let mut len = 0;
+        gl::GetProgramiv(id, gl::INFO_LOG_LENGTH, &mut len);
+        let mut log_buffer: Vec<u8> = Vec::with_capacity(len.try_into().unwrap());
+        gl::GetProgramInfoLog(id, len, &mut len, log_buffer.as_mut_ptr().cast());
+        log_buffer.set_len(len.try_into().unwrap());
+        let log = String::from_utf8(log_buffer).unwrap();
+        println!("Falha ao linkar o Shader Program:\n\t{}", log);
       }
 
       shaders.delete();
 
-      return Program { id, shaders };
+      return Program { id, shaders: ProgramShaders::Common { shaders } };
+    }
+  }
+
+  pub fn new_compute(shader: Shader) -> Self {
+    unsafe {
+      let id = CreateProgram();
+
+      AttachShader(id, shader.id);
+      LinkProgram(id);
+
+      let mut success = 0;
+      gl::GetProgramiv(id, gl::LINK_STATUS, &mut success);
+      if success == 0 {
+        let mut len = 0;
+        gl::GetProgramiv(id, gl::INFO_LOG_LENGTH, &mut len);
+        let mut log_buffer: Vec<u8> = Vec::with_capacity(len.try_into().unwrap());
+        gl::GetProgramInfoLog(id, len, &mut len, log_buffer.as_mut_ptr().cast());
+        log_buffer.set_len(len.try_into().unwrap());
+        let log = String::from_utf8(log_buffer).unwrap();
+        println!("Falha ao linkar o Shader Program:\n\t{}", log);
+      }
+
+      return Program { id, shaders: ProgramShaders::Compute { shader } };
     }
   }
 
