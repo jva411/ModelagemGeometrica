@@ -20,6 +20,10 @@ impl VBO {
     unsafe { gl::BindBuffer(gl::ARRAY_BUFFER, self.id); }
   }
 
+  pub fn delete(&self) {
+    unsafe { gl::DeleteBuffers(1, &self.id); }
+  }
+
   pub fn send_data(&self, data: &[f32]) {
     unsafe {
       gl::BufferData(

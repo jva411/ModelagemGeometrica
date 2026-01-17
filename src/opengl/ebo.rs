@@ -20,6 +20,10 @@ impl EBO {
     unsafe { gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.id); }
   }
 
+  pub fn delete(&self) {
+    unsafe { gl::DeleteBuffers(1, &self.id); }
+  }
+
   pub fn send_data(&self, data: &[u32]) {
     unsafe {
       gl::BufferData(

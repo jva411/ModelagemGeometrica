@@ -4,7 +4,7 @@ use egui::{vec2, ComboBox, FullOutput, SidePanel, Ui, Window as EguiWindow};
 use rfd::FileDialog;
 use uuid::Uuid;
 
-use crate::{objects::{csg::csg_object::CSGObject, object::Object, octree::octree_boolean::BooleanOperator}, opengl::renderer::ProgramType, scene::{scene::Scene, ui::{csg_ui::NewCSGObjectProperties, octree_ui::NewOctreeObjectProperties}, window::Window}};
+use crate::{objects::{csg::csg_object::CSGObject, object::Object, octree::octree_boolean::BooleanOperator}, opengl::renderer::ProgramType, scene::{scene::Scene, ui::{csg_ui::NewCSGObjectProperties, octree_ui::NewOctreeObjectProperties, winged_edged_ui::NewWingedEdgeObjectProperties}, window::Window}};
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum UITab {
@@ -30,17 +30,19 @@ pub enum UICommand {
 pub enum ObjectType {
   Octree,
   CSG,
+  WingedEdge,
 }
 
 #[derive(Clone, Debug)]
 pub enum NewObjectProperties {
   Octree(NewOctreeObjectProperties),
   CSG(NewCSGObjectProperties),
+  WingedEdge(NewWingedEdgeObjectProperties),
 }
 
 impl Default for NewObjectProperties {
   fn default() -> Self {
-    NewObjectProperties::CSG(NewCSGObjectProperties::default())
+    NewObjectProperties::WingedEdge(NewWingedEdgeObjectProperties::default())
   }
 }
 
@@ -66,9 +68,9 @@ impl UIManager {
       selected_tab: UITab::Objects,
       selected_object_id: None,
       is_add_object_window_open: false,
-      new_object_type: ObjectType::Octree,
-      previous_new_object_type: ObjectType::Octree,
-      new_object_properties: NewObjectProperties::CSG(NewCSGObjectProperties::default()),
+      new_object_type: ObjectType::WingedEdge,
+      previous_new_object_type: ObjectType::WingedEdge,
+      new_object_properties: NewObjectProperties::default(),
       boolean_operator: BooleanOperator::UNION,
       selected_boolean_object_id: None,
       commands_queue: Vec::new(),
@@ -134,7 +136,7 @@ impl Window {
   fn draw_objects_tab(ui: &mut Ui, ui_manager: &mut UIManager, scene: &mut Scene) {
     if ui.button("Add Object").clicked() {
       ui_manager.is_add_object_window_open = true;
-      ui_manager.new_object_type = ObjectType::CSG;
+      ui_manager.new_object_type = ObjectType::WingedEdge;
       ui_manager.new_object_properties = NewObjectProperties::default();
     }
     ui.separator();
@@ -252,6 +254,11 @@ impl Window {
               ObjectType::CSG,
               "CSG",
             );
+            ui.selectable_value(
+              &mut ui_manager.new_object_type,
+              ObjectType::WingedEdge,
+              "Winged Edge",
+            );
           });
 
         ui.separator();
@@ -260,6 +267,7 @@ impl Window {
           ui_manager.new_object_properties = match ui_manager.new_object_type {
             ObjectType::Octree => NewObjectProperties::Octree(NewOctreeObjectProperties::default()),
             ObjectType::CSG => NewObjectProperties::CSG(NewCSGObjectProperties::default()),
+            ObjectType::WingedEdge => NewObjectProperties::WingedEdge(NewWingedEdgeObjectProperties::default()),
           };
           ui_manager.previous_new_object_type = ui_manager.new_object_type;
         }
@@ -267,10 +275,13 @@ impl Window {
         match ui_manager.new_object_type {
           ObjectType::Octree => {
             ui_manager.draw_octree_creation_options(ui);
-          }
+          },
           ObjectType::CSG => {
             ui_manager.draw_csg_creation_options(ui);
-          }
+          },
+          ObjectType::WingedEdge => {
+            ui_manager.draw_winged_edge_creation_options(ui);
+          },
         }
       });
 
@@ -293,7 +304,11 @@ impl Window {
             NewObjectProperties::CSG(props) => {
               let new_object = Window::create_csg_object(props);
               self.scene.add_object(ProgramType::Common, new_object);
-            }
+            },
+            NewObjectProperties::WingedEdge(props) => {
+              let new_object = Window::create_winged_edge_object(props);
+              self.scene.add_object(ProgramType::Common, new_object);
+            },
           }
         }
 
@@ -327,6 +342,7 @@ impl Window {
           match object_type {
             ObjectType::Octree => self.apply_octree_boolean(left_id, right_id, operator),
             ObjectType::CSG => self.apply_csg_boolean(left_id, right_id, operator),
+            ObjectType::WingedEdge => self.apply_winged_edge_boolean(left_id, right_id, operator),
           }
         }
 

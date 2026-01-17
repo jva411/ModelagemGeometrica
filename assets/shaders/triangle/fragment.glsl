@@ -52,7 +52,7 @@ vec3 CalcPointLight(PointLight light, vec3 cameraDirection) {
   vec3 diffuseLight = light.diffuse * material.diffuse * (4 * diffuse / (distance * distance));
 
   vec3 specularLight = vec3(0.0, 0.0, 0.0);
-  if (diffuse > 0.0) {
+  if (diffuse > 0.000001) {
     float specular = SPECULAR_FUNCTION(lightDirection, cameraDirection);
     specularLight = light.specular * specular * material.specular;
   }

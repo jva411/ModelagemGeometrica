@@ -20,6 +20,10 @@ impl VAO {
     unsafe { gl::BindVertexArray(self.id); }
   }
 
+  pub fn delete(&self) {
+    unsafe { gl::DeleteVertexArrays(1, &self.id); }
+  }
+
   pub fn add_attribute(&self, index: u32, stride: u32, offset: u32) {
     unsafe {
       gl::VertexAttribPointer(
