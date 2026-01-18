@@ -191,7 +191,9 @@ pub struct WingedEdgeObject {
   pub opengl_vertices: Vec<f32>,
   pub opengl_indices: Vec<u32>,
 
-  pub hilighted_vertices: HashSet<usize>,
+  pub highlighted_vertices: HashSet<usize>,
+  pub highlighted_edges: HashSet<usize>,
+  pub highlighted_faces: HashSet<usize>,
 }
 
 impl WingedEdgeObject {
@@ -211,7 +213,9 @@ impl WingedEdgeObject {
       opengl_vertices: Vec::new(),
       opengl_indices: Vec::new(),
 
-      hilighted_vertices: HashSet::new(),
+      highlighted_vertices: HashSet::new(),
+      highlighted_edges: HashSet::new(),
+      highlighted_faces: HashSet::new(),
     };
   }
 
@@ -243,13 +247,7 @@ impl WingedEdgeObject {
       let v0 = self.vertices[face_vertices_ids[0]].position;
       let v1 = self.vertices[face_vertices_ids[1]].position;
       let v2 = self.vertices[face_vertices_ids[2]].position;
-      let mut normal = (v2 - v0).cross(v1 - v0).normalize();
-      let mut was_inverted = false;
-      let normal_ref = center_position.normalize();
-      if normal.dot(normal_ref) < -0.00001 {
-        normal *= -1.0;
-        was_inverted = true;
-      }
+      let normal = (v2 - v0).cross(v1 - v0).normalize();
 
       let center_idx = (self.opengl_vertices.len() / 6) as u32;
       self.opengl_vertices.push(center_position.x);
@@ -269,13 +267,8 @@ impl WingedEdgeObject {
         append_opengl_vertex!(self.opengl_vertices, end_vertex, normal);
 
         self.opengl_indices.push(center_idx);
-        if was_inverted {
-          self.opengl_indices.push(start_vertex_index);
-          self.opengl_indices.push(end_vertex_index);
-        } else {
-          self.opengl_indices.push(end_vertex_index);
-          self.opengl_indices.push(start_vertex_index);
-        }
+        self.opengl_indices.push(end_vertex_index);
+        self.opengl_indices.push(start_vertex_index);
       }
     }
 

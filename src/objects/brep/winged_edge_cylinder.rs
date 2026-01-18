@@ -17,7 +17,7 @@ impl WingedEdgeObject {
     faces.push(bottom_face);
 
     for i in 0..subdivisions {
-      let angle = (i as f32) / (subdivisions as f32) * f32::consts::PI * 2.0;
+      let angle = (i as f32) / (subdivisions as f32) * f32::consts::PI * -2.0;
       let x = radius * angle.cos();
       let z = radius * angle.sin();
 
