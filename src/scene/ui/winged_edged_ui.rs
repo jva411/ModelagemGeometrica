@@ -71,7 +71,7 @@ impl UIManager {
         CSGPrimitives::Sphere => {
           ui.horizontal(|ui| {
             ui.label("Subdivisions: ");
-            ui.add(egui::DragValue::new(&mut props.subdivisions).range(3..=100).speed(1));
+            ui.add(egui::DragValue::new(&mut props.subdivisions).range(2..=1000).speed(1));
           });
         },
         CSGPrimitives::Cylinder | CSGPrimitives::Cone => {
