@@ -9,10 +9,9 @@ use crate::{objects::{brep::winged_edge_object::WingedEdgeObject, csg::csg_objec
 pub struct NewWingedEdgeObjectProperties {
   primitive: CSGPrimitives,
   name: String,
-  // radius: f32,
-  // height: f32,
-  // subdivisions: u32,
-  // obj_path: Option<PathBuf>,
+  radius: f32,
+  height: f32,
+  subdivisions: u32,
 }
 
 impl Default for NewWingedEdgeObjectProperties {
@@ -20,16 +19,15 @@ impl Default for NewWingedEdgeObjectProperties {
     NewWingedEdgeObjectProperties {
       primitive: CSGPrimitives::Cube,
       name: String::from("New Object"),
-      // subdivisions: 30,
-      // height: 2.0,
-      // radius: 1.0,
-      // obj_path: None,
+      subdivisions: 30,
+      height: 2.0,
+      radius: 1.0,
     }
   }
 }
 
 impl UIManager {
-  pub fn draw_winged_edge_object_properties(&mut self, ui: &mut Ui, scene: &Scene, object: &mut WingedEdgeObject) {
+  pub fn draw_winged_edge_object_properties(&mut self, _ui: &mut Ui, _scene: &Scene, _object: &mut WingedEdgeObject) {
 
   }
 
@@ -59,11 +57,6 @@ impl UIManager {
           CSGPrimitives::Cone,
           "Cone",
         );
-        ui.selectable_value(
-          &mut props.primitive,
-          CSGPrimitives::Generic,
-          "Generic"
-        );
       });
 
       ui.separator();
@@ -74,46 +67,27 @@ impl UIManager {
       });
 
       match props.primitive {
-        // CSGPrimitives::Cube => {},
-        // CSGPrimitives::Sphere => {
-        //   ui.horizontal(|ui| {
-        //     ui.label("Radius: ");
-        //     ui.add(egui::DragValue::new(&mut props.radius).speed(0.1));
-        //   });
-        //   ui.horizontal(|ui| {
-        //     ui.label("Subdivisions: ");
-        //     ui.add(egui::DragValue::new(&mut props.subdivisions).range(0..=100).speed(1));
-        //   });
-        // },
-        // CSGPrimitives::Cylinder | CSGPrimitives::Cone => {
-        //   ui.horizontal(|ui| {
-        //     ui.label("Radius: ");
-        //     ui.add(egui::DragValue::new(&mut props.radius).speed(0.1));
-        //   });
-        //   ui.horizontal(|ui| {
-        //     ui.label("Height: ");
-        //     ui.add(egui::DragValue::new(&mut props.height).speed(0.1));
-        //   });
-        //   ui.horizontal(|ui| {
-        //     ui.label("Subdivisions: ");
-        //     ui.add(egui::DragValue::new(&mut props.subdivisions).range(4..=100).speed(1));
-        //   });
-        // },
-        // CSGPrimitives::Generic => {
-        //   ui.label("CSG File: ");
-        //   let placeholder = if let Some(path) = &props.obj_path {
-        //     path.file_stem().unwrap().to_str().unwrap()
-        //   } else {
-        //     "Select csg"
-        //   };
-        //   if ui.button(placeholder).clicked() {
-        //     let path = FileDialog::new().add_filter("CSG", &["csg"]).pick_file();
-        //     let path = path.unwrap();
-        //     let stem = path.file_stem().unwrap().to_str().unwrap();
-        //     props.name = stem.to_string();
-        //     props.obj_path = Some(path);
-        //   }
-        // }
+        CSGPrimitives::Cube => {},
+        CSGPrimitives::Sphere => {
+          ui.horizontal(|ui| {
+            ui.label("Subdivisions: ");
+            ui.add(egui::DragValue::new(&mut props.subdivisions).range(3..=100).speed(1));
+          });
+        },
+        CSGPrimitives::Cylinder | CSGPrimitives::Cone => {
+          ui.horizontal(|ui| {
+            ui.label("Radius: ");
+            ui.add(egui::DragValue::new(&mut props.radius).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Height: ");
+            ui.add(egui::DragValue::new(&mut props.height).speed(0.1));
+          });
+          ui.horizontal(|ui| {
+            ui.label("Subdivisions: ");
+            ui.add(egui::DragValue::new(&mut props.subdivisions).range(3..=1000).speed(1));
+          });
+        },
         _ => {}
       }
 
@@ -136,12 +110,31 @@ impl UIManager {
 
 impl Window {
   pub fn create_winged_edge_object(props: NewWingedEdgeObjectProperties) -> Rc<RefCell<WingedEdgeObject>> {
-    match props.primitive {
-      CSGPrimitives::Cube => Rc::new(RefCell::new(WingedEdgeObject::new_cube(
+    let mut object = match props.primitive {
+      CSGPrimitives::Cube => WingedEdgeObject::new_cube(
         props.name,
-      ))),
+      ),
+      CSGPrimitives::Sphere => WingedEdgeObject::new_sphere(
+        props.name,
+        props.subdivisions as usize,
+      ),
+      CSGPrimitives::Cylinder => WingedEdgeObject::new_cylinder(
+        props.name,
+        props.subdivisions as usize,
+        props.height,
+        props.radius,
+      ),
+      CSGPrimitives::Cone => WingedEdgeObject::new_cone(
+        props.name,
+        props.subdivisions as usize,
+        props.height,
+        props.radius,
+      ),
       _ => unimplemented!(),
-    }
+    };
+
+    object.build_opengl();
+    return Rc::new(RefCell::new(object));
   }
 
   pub fn apply_winged_edge_boolean(&mut self, _left_id: Uuid, _right_id: Uuid, _operator: BooleanOperator) {

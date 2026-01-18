@@ -20,7 +20,7 @@ impl WingedEdgeObject {
     let vertices = vertices_positions
       .iter()
       .enumerate()
-      .map(|(index, position)| Vertex { id: index, position: *position, edge: index })
+      .map(|(index, position)| Vertex { id: index, position: *position, _edge: index })
       .collect::<Vec<_>>();
 
     let back_face = Face { id: 0, edge: 0 };
@@ -38,8 +38,8 @@ impl WingedEdgeObject {
         vertex_end: 1,
         face_clockwise: back_face.id,
         face_counterclockwise: bottom_face.id,
-        next_edge_clockwise: Some(1),
-        next_edge_counterclockwise: Some(8),
+        next_edge_clockwise: 1,
+        next_edge_counterclockwise: 8,
       },
       Edge {
         id: 1,
@@ -47,8 +47,8 @@ impl WingedEdgeObject {
         vertex_end: 2,
         face_clockwise: back_face.id,
         face_counterclockwise: right_face.id,
-        next_edge_clockwise: Some(2),
-        next_edge_counterclockwise: Some(11),
+        next_edge_clockwise: 2,
+        next_edge_counterclockwise: 11,
       },
       Edge {
         id: 2,
@@ -56,8 +56,8 @@ impl WingedEdgeObject {
         vertex_end: 3,
         face_clockwise: back_face.id,
         face_counterclockwise: top_face.id,
-        next_edge_clockwise: Some(3),
-        next_edge_counterclockwise: Some(10),
+        next_edge_clockwise: 3,
+        next_edge_counterclockwise: 10,
       },
       Edge {
         id: 3,
@@ -65,8 +65,8 @@ impl WingedEdgeObject {
         vertex_end: 0,
         face_clockwise: back_face.id,
         face_counterclockwise: left_face.id,
-        next_edge_clockwise: Some(0),
-        next_edge_counterclockwise: Some(9),
+        next_edge_clockwise: 0,
+        next_edge_counterclockwise: 9,
       },
 
       // Front face edges
@@ -76,8 +76,8 @@ impl WingedEdgeObject {
         vertex_end: 5,
         face_clockwise: front_face.id,
         face_counterclockwise: left_face.id,
-        next_edge_clockwise: Some(5),
-        next_edge_counterclockwise: Some(8),
+        next_edge_clockwise: 5,
+        next_edge_counterclockwise: 8,
       },
       Edge {
         id: 5,
@@ -85,8 +85,8 @@ impl WingedEdgeObject {
         vertex_end: 6,
         face_clockwise: front_face.id,
         face_counterclockwise: top_face.id,
-        next_edge_clockwise: Some(6),
-        next_edge_counterclockwise: Some(9),
+        next_edge_clockwise: 6,
+        next_edge_counterclockwise: 9,
       },
       Edge {
         id: 6,
@@ -94,8 +94,8 @@ impl WingedEdgeObject {
         vertex_end: 7,
         face_clockwise: front_face.id,
         face_counterclockwise: right_face.id,
-        next_edge_clockwise: Some(7),
-        next_edge_counterclockwise: Some(10),
+        next_edge_clockwise: 7,
+        next_edge_counterclockwise: 10,
       },
       Edge {
         id: 7,
@@ -103,8 +103,8 @@ impl WingedEdgeObject {
         vertex_end: 4,
         face_clockwise: front_face.id,
         face_counterclockwise: bottom_face.id,
-        next_edge_clockwise: Some(4),
-        next_edge_counterclockwise: Some(11),
+        next_edge_clockwise: 4,
+        next_edge_counterclockwise: 11,
       },
 
       // Lateral faces edges
@@ -114,8 +114,8 @@ impl WingedEdgeObject {
         vertex_end: 0,
         face_clockwise: left_face.id,
         face_counterclockwise: bottom_face.id,
-        next_edge_clockwise: Some(3),
-        next_edge_counterclockwise: Some(7),
+        next_edge_clockwise: 3,
+        next_edge_counterclockwise: 7,
       },
       Edge {
         id: 9,
@@ -123,8 +123,8 @@ impl WingedEdgeObject {
         vertex_end: 5,
         face_clockwise: left_face.id,
         face_counterclockwise: top_face.id,
-        next_edge_clockwise: Some(4),
-        next_edge_counterclockwise: Some(2),
+        next_edge_clockwise: 4,
+        next_edge_counterclockwise: 2,
       },
       Edge {
         id: 10,
@@ -132,8 +132,8 @@ impl WingedEdgeObject {
         vertex_end: 2,
         face_clockwise: right_face.id,
         face_counterclockwise: top_face.id,
-        next_edge_clockwise: Some(1),
-        next_edge_counterclockwise: Some(5),
+        next_edge_clockwise: 1,
+        next_edge_counterclockwise: 5,
       },
       Edge {
         id: 11,
@@ -141,8 +141,8 @@ impl WingedEdgeObject {
         vertex_end: 7,
         face_clockwise: right_face.id,
         face_counterclockwise: bottom_face.id,
-        next_edge_clockwise: Some(6),
-        next_edge_counterclockwise: Some(0),
+        next_edge_clockwise: 6,
+        next_edge_counterclockwise: 0,
       },
     ];
 
@@ -157,19 +157,6 @@ impl WingedEdgeObject {
       top_face,
       bottom_face,
     ];
-
-    // println!("Vértices:");
-    // println!("{:#?}", object.vertices);
-
-    // println!("\n\n\nArestas:");
-    // println!("{:#?}", object.edges);
-
-    // println!("\n\n\nFaces:");
-    // println!("{:#?}", object.faces);
-
-    // unsafe { sys::exit(1) };
-
-    object.build_opengl();
 
     return object;
   }

@@ -4,7 +4,7 @@ use egui::{vec2, ComboBox, FullOutput, SidePanel, Ui, Window as EguiWindow};
 use rfd::FileDialog;
 use uuid::Uuid;
 
-use crate::{objects::{csg::csg_object::CSGObject, object::Object, octree::octree_boolean::BooleanOperator}, opengl::renderer::ProgramType, scene::{scene::Scene, ui::{csg_ui::NewCSGObjectProperties, octree_ui::NewOctreeObjectProperties, winged_edged_ui::NewWingedEdgeObjectProperties}, window::Window}};
+use crate::{objects::{brep::winged_edge_object::WingedEdgeObject, csg::csg_object::CSGObject, object::Object, octree::octree_boolean::BooleanOperator}, opengl::renderer::ProgramType, scene::{scene::Scene, ui::{csg_ui::NewCSGObjectProperties, octree_ui::NewOctreeObjectProperties, winged_edged_ui::NewWingedEdgeObjectProperties}, window::Window}};
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum UITab {
@@ -225,6 +225,8 @@ impl Window {
       ui_manager.draw_octree_object_properties(ui, scene, object);
     } else if object.as_any_mut().is::<CSGObject>() {
       ui_manager.draw_csg_object_properties(ui, scene, object.as_any_mut().downcast_mut::<CSGObject>().unwrap());
+    } else if object.as_any_mut().is::<WingedEdgeObject>() {
+      ui_manager.draw_winged_edge_object_properties(ui, scene, object.as_any_mut().downcast_mut::<WingedEdgeObject>().unwrap());
     }
   }
 

@@ -27,7 +27,7 @@ pub struct Neighbors {
 pub struct Vertex {
   pub id: usize,
   pub position: Vec3,
-  pub edge: usize,
+  pub _edge: usize,
 }
 
 impl Vertex {
@@ -63,10 +63,8 @@ pub struct Edge {
   pub face_clockwise: usize,
   pub face_counterclockwise: usize,
 
-  pub next_edge_clockwise: Option<usize>,
-  // pub prev_edge_clockwise: Option<usize>,
-  pub next_edge_counterclockwise: Option<usize>,
-  // pub prev_edge_counterclockwise: Option<usize>,
+  pub next_edge_clockwise: usize,
+  pub next_edge_counterclockwise: usize,
 }
 
 impl Edge {
@@ -119,6 +117,61 @@ impl Face {
       faces: neigh_faces.into_iter().collect(),
     };
   }
+
+  pub fn get_neighbors_vertices_in_order(&self, object: &WingedEdgeObject) -> Vec<usize> {
+    let mut face_vertices_ids = Vec::new();
+    let start_edge_id = self.edge;
+    let mut current_edge_id = start_edge_id;
+
+    loop {
+      let edge = &object.edges[current_edge_id];
+
+      if edge.face_clockwise == self.id {
+        face_vertices_ids.push(edge.vertex_start);
+        current_edge_id = edge.next_edge_clockwise;
+      } else {
+        face_vertices_ids.push(edge.vertex_end);
+        current_edge_id = edge.next_edge_counterclockwise;
+      }
+
+      if current_edge_id == start_edge_id { break; }
+    }
+
+    return face_vertices_ids;
+  }
+
+  pub fn get_neighbors_edges_in_order(&self, object: &WingedEdgeObject) -> Vec<usize> {
+    let mut face_edges_ids = Vec::new();
+    let start_edge_id = self.edge;
+    let mut current_edge_id = start_edge_id;
+
+    loop {
+      let edge = &object.edges[current_edge_id];
+
+      if edge.face_clockwise == self.id {
+        face_edges_ids.push(edge.id);
+        current_edge_id = edge.next_edge_clockwise;
+      } else {
+        face_edges_ids.push(edge.id);
+        current_edge_id = edge.next_edge_counterclockwise;
+      }
+
+      if current_edge_id == start_edge_id { break; }
+    }
+
+    return face_edges_ids;
+  }
+
+  pub fn calc_center_position(&self, object: &WingedEdgeObject) -> Vec3 {
+    let neigh_vertices = self.get_neighbors_vertices_in_order(object);
+    let mut center_position = Vec3::ZERO;
+    for &v_id in &neigh_vertices {
+      center_position += object.vertices[v_id].position;
+    }
+    center_position /= neigh_vertices.len() as f32;
+
+    return center_position;
+  }
 }
 
 
@@ -137,6 +190,8 @@ pub struct WingedEdgeObject {
   pub ebo: EBO,
   pub opengl_vertices: Vec<f32>,
   pub opengl_indices: Vec<u32>,
+
+  pub hilighted_vertices: HashSet<usize>,
 }
 
 impl WingedEdgeObject {
@@ -155,6 +210,8 @@ impl WingedEdgeObject {
       ebo: EBO::new(),
       opengl_vertices: Vec::new(),
       opengl_indices: Vec::new(),
+
+      hilighted_vertices: HashSet::new(),
     };
   }
 
@@ -175,23 +232,7 @@ impl WingedEdgeObject {
     self.opengl_indices = Vec::new();
 
     for face in self.faces.iter() {
-      let mut face_vertices_ids = Vec::new();
-      let start_edge_id = face.edge;
-      let mut current_edge_id = start_edge_id;
-
-      loop {
-        let edge = &self.edges[current_edge_id];
-
-        if edge.face_clockwise == face.id {
-          face_vertices_ids.push(edge.vertex_start);
-          current_edge_id = edge.next_edge_clockwise.unwrap();
-        } else {
-          face_vertices_ids.push(edge.vertex_end);
-          current_edge_id = edge.next_edge_counterclockwise.unwrap();
-        }
-
-        if current_edge_id == start_edge_id { break; }
-      }
+      let face_vertices_ids = face.get_neighbors_vertices_in_order(&self);
 
       let mut center_position = Vec3::ZERO;
       for &v_id in &face_vertices_ids {
@@ -202,7 +243,13 @@ impl WingedEdgeObject {
       let v0 = self.vertices[face_vertices_ids[0]].position;
       let v1 = self.vertices[face_vertices_ids[1]].position;
       let v2 = self.vertices[face_vertices_ids[2]].position;
-      let normal = (v2 - v0).cross(v1 - v0).normalize();
+      let mut normal = (v2 - v0).cross(v1 - v0).normalize();
+      let mut was_inverted = false;
+      let normal_ref = center_position.normalize();
+      if normal.dot(normal_ref) < -0.00001 {
+        normal *= -1.0;
+        was_inverted = true;
+      }
 
       let center_idx = (self.opengl_vertices.len() / 6) as u32;
       self.opengl_vertices.push(center_position.x);
@@ -222,8 +269,13 @@ impl WingedEdgeObject {
         append_opengl_vertex!(self.opengl_vertices, end_vertex, normal);
 
         self.opengl_indices.push(center_idx);
-        self.opengl_indices.push(end_vertex_index);
-        self.opengl_indices.push(start_vertex_index);
+        if was_inverted {
+          self.opengl_indices.push(start_vertex_index);
+          self.opengl_indices.push(end_vertex_index);
+        } else {
+          self.opengl_indices.push(end_vertex_index);
+          self.opengl_indices.push(start_vertex_index);
+        }
       }
     }
 
@@ -231,8 +283,6 @@ impl WingedEdgeObject {
     self.vao.add_attribute(1, 6 * SIZE_F32, 3 * SIZE_F32);
     self.vbo.send_data(&self.opengl_vertices);
     self.ebo.send_data(&self.opengl_indices);
-    println!("vertices: {}", self.opengl_vertices.len() / 6);
-    println!("indices: {}", self.opengl_indices.len());
   }
 }
 
