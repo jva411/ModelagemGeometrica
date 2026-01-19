@@ -25,6 +25,10 @@ uniform PointLight[MAX_LIGHTS] lights;
 uniform int n_lights;
 uniform vec3 cameraPosition;
 
+// Color override
+uniform bool uUseOverrideColor;
+uniform vec3 uOverrideColor;
+
 out vec4 FragColor;
 
 vec3 CalcPointLight(PointLight light, vec3 cameraDirection);
@@ -34,12 +38,16 @@ float CalcBlinnPhongSpecular(vec3 lightDirection, vec3 cameraDirection);
 void main() {
   vec3 cameraDirection = normalize(cameraPosition - fragmentPosition);
 
-  vec3 finalColor = vec3(0.0, 0.0, 0.0);
-  for (int i=0; i<n_lights; i++) {
-    finalColor += CalcPointLight(lights[i], cameraDirection);
-  }
+  if (uUseOverrideColor) {
+    FragColor = vec4(uOverrideColor, 1.0);
+  } else {
+    vec3 finalColor = vec3(0.0, 0.0, 0.0);
+    for (int i=0; i<n_lights; i++) {
+      finalColor += CalcPointLight(lights[i], cameraDirection);
+    }
 
-  FragColor = vec4(finalColor, 1.0);
+    FragColor = vec4(finalColor, 1.0);
+  }
 }
 
 

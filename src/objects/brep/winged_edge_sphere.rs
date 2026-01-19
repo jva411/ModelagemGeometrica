@@ -37,118 +37,124 @@ impl WingedEdgeObject {
       2 + ring_idx * n_long + wrapped_long
     };
 
+    let mut meridian_edges = vec![vec![0; n_long]; n_lat];
+    let mut parallel_edges = vec![vec![0; n_long]; rings_count];
+
+    for row in 0..n_lat {
+      for col in 0..n_long {
+        let v_start = if row == 0 { 0 } else { get_ring_vertex(row - 1, col) };
+        let v_end = if row == n_lat - 1 { 1 } else { get_ring_vertex(row, col) };
+
+        let edge_id = object.edges.len();
+        meridian_edges[row][col] = edge_id;
+
+        object.edges.push(Edge {
+          id: edge_id,
+          vertex_start: v_start,
+          vertex_end: v_end,
+          face_clockwise: 0, face_counterclockwise: 0,
+          next_edge_clockwise: 0, next_edge_counterclockwise: 0,
+        });
+        object.vertices[v_start]._edge = edge_id;
+      }
+    }
+
+    for row in 0..rings_count {
+      for col in 0..n_long {
+        let v_start = get_ring_vertex(row, col);
+        let v_end = get_ring_vertex(row, col + 1);
+
+        let edge_id = object.edges.len();
+        parallel_edges[row][col] = edge_id;
+
+        object.edges.push(Edge {
+          id: edge_id,
+          vertex_start: v_start,
+          vertex_end: v_end,
+          face_clockwise: 0, face_counterclockwise: 0,
+          next_edge_clockwise: 0, next_edge_counterclockwise: 0,
+        });
+      }
+    }
+
     for i in 0..n_long {
-      let v_top = top_vertex.id;
-      let v_curr = get_ring_vertex(0, i);
-      let v_next = get_ring_vertex(0, i + 1);
-
       let face_id = object.faces.len();
-      let e0_id = object.edges.len();
-      let e1_id = e0_id + 1;
-      let e2_id = e0_id + 2;
 
-      object.faces.push(Face { id: face_id, edge: e0_id });
+      let e_right = meridian_edges[0][(i + 1) % n_long];
+      let e_bottom = parallel_edges[0][i];
+      let e_left = meridian_edges[0][i];
 
-      let face_next = if i == n_long - 1 { 0 } else { face_id + 1 };
-      let face_prev = if i == 0 { n_long - 1 } else { face_id - 1 };
+      object.faces.push(Face { id: face_id, edge: e_left });
 
-      object.edges.push(Edge {
-        id: e0_id,
-        vertex_start: v_top, vertex_end: v_curr,
-        face_clockwise: face_id,
-        face_counterclockwise: face_prev,
-        next_edge_clockwise: e1_id,
-        next_edge_counterclockwise: 0,
-      });
-      object.edges.push(Edge {
-        id: e1_id,
-        vertex_start: v_curr, vertex_end: v_next,
-        face_clockwise: face_id,
-        face_counterclockwise: n_long + i,
-        next_edge_clockwise: e2_id,
-        next_edge_counterclockwise: 0,
-      });
-      object.edges.push(Edge {
-        id: e2_id,
-        vertex_start: v_next, vertex_end: v_top,
-        face_clockwise: face_id,
-        face_counterclockwise: face_next,
-        next_edge_clockwise: e0_id,
-        next_edge_counterclockwise: 0,
-      });
+      let e_r_obj = &mut object.edges[e_right];
+      e_r_obj.face_clockwise = face_id;
+      e_r_obj.next_edge_clockwise = e_bottom;
 
-      object.vertices[v_top]._edge = e0_id;
+      let e_b_obj = &mut object.edges[e_bottom];
+      e_b_obj.face_counterclockwise = face_id;
+      e_b_obj.next_edge_counterclockwise = e_left;
+
+      let e_l_obj = &mut object.edges[e_left];
+      e_l_obj.face_counterclockwise = 0;
+
+      object.edges[e_left].face_counterclockwise = face_id;
+      object.edges[e_left].next_edge_counterclockwise = e_right;
+
+      object.edges[e_right].face_clockwise = face_id;
+      object.edges[e_right].next_edge_clockwise = e_bottom;
+
+      object.edges[e_bottom].face_counterclockwise = face_id;
+      object.edges[e_bottom].next_edge_counterclockwise = e_left;
     }
 
     for j in 0..rings_count - 1 {
       for i in 0..n_long {
-        let v_tl = get_ring_vertex(j, i);
-        let v_tr = get_ring_vertex(j, i + 1);
-        let v_br = get_ring_vertex(j + 1, i + 1);
-        let v_bl = get_ring_vertex(j + 1, i);
-
         let face_id = object.faces.len();
-        let base_edge_id = object.edges.len();
 
-        object.faces.push(Face { id: face_id, edge: base_edge_id });
+        let e_top = parallel_edges[j][i];
+        let e_right = meridian_edges[j + 1][(i + 1) % n_long];
+        let e_bottom = parallel_edges[j + 1][i];
+        let e_left = meridian_edges[j + 1][i];
 
-        let e_top = base_edge_id;
-        let e_right = base_edge_id + 1;
-        let e_bottom = base_edge_id + 2;
-        let e_left = base_edge_id + 3;
+        object.faces.push(Face { id: face_id, edge: e_top });
 
-        object.edges.push(Edge {
-          id: e_top, vertex_start: v_tl, vertex_end: v_tr,
-          face_clockwise: face_id, face_counterclockwise: 0,
-          next_edge_clockwise: e_right, next_edge_counterclockwise: e_left
-        });
-        object.edges.push(Edge {
-          id: e_right, vertex_start: v_tr, vertex_end: v_br,
-          face_clockwise: face_id, face_counterclockwise: 0,
-          next_edge_clockwise: e_bottom, next_edge_counterclockwise: e_top
-        });
-        object.edges.push(Edge {
-          id: e_bottom, vertex_start: v_br, vertex_end: v_bl,
-          face_clockwise: face_id, face_counterclockwise: 0,
-          next_edge_clockwise: e_left, next_edge_counterclockwise: e_right
-        });
-        object.edges.push(Edge {
-          id: e_left, vertex_start: v_bl, vertex_end: v_tl,
-          face_clockwise: face_id, face_counterclockwise: 0,
-          next_edge_clockwise: e_top, next_edge_counterclockwise: e_bottom
-        });
+        object.edges[e_top].face_clockwise = face_id;
+        object.edges[e_top].next_edge_clockwise = e_right;
+
+        object.edges[e_right].face_clockwise = face_id;
+        object.edges[e_right].next_edge_clockwise = e_bottom;
+
+        object.edges[e_bottom].face_counterclockwise = face_id;
+        object.edges[e_bottom].next_edge_counterclockwise = e_left;
+
+        object.edges[e_left].face_counterclockwise = face_id;
+        object.edges[e_left].next_edge_counterclockwise = e_top;
       }
     }
 
     let last_ring_idx = rings_count - 1;
     for i in 0..n_long {
-      let v_top = get_ring_vertex(last_ring_idx, i);
-      let v_next_top = get_ring_vertex(last_ring_idx, i + 1);
-      let v_bottom = bottom_vertex.id;
-
       let face_id = object.faces.len();
-      let base_edge = object.edges.len();
 
-      object.faces.push(Face { id: face_id, edge: base_edge });
+      let e_top = parallel_edges[last_ring_idx][i];
+      let e_right = meridian_edges[n_lat - 1][(i + 1) % n_long];
+      let e_left = meridian_edges[n_lat - 1][i];
 
-      object.edges.push(Edge {
-        id: base_edge, vertex_start: v_top, vertex_end: v_next_top,
-        face_clockwise: face_id, face_counterclockwise: 0,
-        next_edge_clockwise: base_edge + 1, next_edge_counterclockwise: base_edge + 2
-      });
-      object.edges.push(Edge {
-        id: base_edge + 1, vertex_start: v_next_top, vertex_end: v_bottom,
-        face_clockwise: face_id, face_counterclockwise: 0,
-        next_edge_clockwise: base_edge + 2, next_edge_counterclockwise: base_edge
-      });
-      object.edges.push(Edge {
-        id: base_edge + 2, vertex_start: v_bottom, vertex_end: v_top,
-        face_clockwise: face_id, face_counterclockwise: 0,
-        next_edge_clockwise: base_edge, next_edge_counterclockwise: base_edge + 1
-      });
+      object.faces.push(Face { id: face_id, edge: e_top });
+
+      object.edges[e_top].face_clockwise = face_id;
+      object.edges[e_top].next_edge_clockwise = e_right;
+
+      object.edges[e_right].face_clockwise = face_id;
+      object.edges[e_right].next_edge_clockwise = e_left;
+
+      object.edges[e_left].face_counterclockwise = face_id;
+      object.edges[e_left].next_edge_counterclockwise = e_top;
     }
 
-    object.build_opengl();
+    object.vertices.sort_by(|v1, v2| v1.id.cmp(&v2.id));
+    object.edges.sort_by(|e1, e2| e1.id.cmp(&e2.id));
+    object.faces.sort_by(|f1, f2| f1.id.cmp(&f2.id));
 
     return object;
   }

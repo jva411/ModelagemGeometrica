@@ -340,6 +340,7 @@ macro_rules! octree_derive_Object {
       fn get_transform(&self) -> &Transform { &self.instanced_cube.transform }
       fn get_transform_mut(&mut self) -> &mut Transform { &mut self.instanced_cube.transform }
       fn get_material(&self) -> &Material { &self.instanced_cube.material }
+      fn get_material_mut(&mut self) -> &mut Material { &mut self.instanced_cube.material }
 
       fn tick(&mut self) { }
 

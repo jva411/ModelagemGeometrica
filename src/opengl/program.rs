@@ -125,4 +125,18 @@ impl Program {
       return Ok(());
     };
   }
+
+  pub fn set_uniform_bool(&self, name: &str, value: bool) -> Result<(), String> {
+    let name = name.to_string() + "\0";
+    unsafe {
+      let location = GetUniformLocation(self.id, name.as_ptr().cast());
+      if location == -1 {
+        return Err(format!("Uniform not found: {}", name));
+      }
+
+      gl::Uniform1i(location, value as i32);
+
+      return Ok(());
+    };
+  }
 }

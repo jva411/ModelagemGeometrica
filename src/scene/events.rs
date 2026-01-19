@@ -62,8 +62,6 @@ impl Window {
           let mouse = self.sdl.context.mouse();
           self.sdl.context.mouse().set_relative_mouse_mode(false);
           mouse.warp_mouse_in_window(&self.sdl.window, self.width as i32/ 2, self.height as i32 / 2);
-        } else {
-          return EventResult::Quit;
         }
       },
       _ => {},

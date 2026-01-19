@@ -13,6 +13,7 @@ pub trait Object {
   fn get_transform(&self) -> &Transform;
   fn get_transform_mut(&mut self) -> &mut Transform;
   fn get_material(&self) -> &Material;
+  fn get_material_mut(&mut self) -> &mut Material;
 
   fn tick(&mut self);
   fn draw(&self, program: &Program, base_transform: Option<Transform>);

@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use egui::{ComboBox, Ui};
 use uuid::Uuid;
 
-use crate::{objects::{brep::winged_edge_object::WingedEdgeObject, csg::csg_object::CSGPrimitives, octree::octree_boolean::BooleanOperator}, scene::{scene::Scene, ui::ui::{NewObjectProperties, UICommand, UIManager}, window::Window}};
+use crate::{objects::{brep::winged_edge_object::{MemberType, WingedEdgeObject}, csg::csg_object::CSGPrimitives, octree::octree_boolean::BooleanOperator}, scene::{scene::Scene, ui::ui::{NewObjectProperties, UICommand, UIManager}, window::Window}};
 
 #[derive(Clone, Debug)]
 pub struct NewWingedEdgeObjectProperties {
@@ -27,8 +27,34 @@ impl Default for NewWingedEdgeObjectProperties {
 }
 
 impl UIManager {
-  pub fn draw_winged_edge_object_properties(&mut self, _ui: &mut Ui, _scene: &Scene, _object: &mut WingedEdgeObject) {
+  pub fn draw_winged_edge_object_properties(&mut self, ui: &mut Ui, _scene: &Scene, object: &mut WingedEdgeObject) {
+    ui.separator();
+    ui.heading("Winged Edge Properties");
 
+    ui.heading("Adjacents View");
+    ui.horizontal(|ui| {
+      ui.label("Vertex: ");
+      ui.add(egui::DragValue::new(&mut self.winged_edge_vertex_selected).range(0..=object.vertices.len()-1).speed(1));
+      if ui.button("Select").clicked() && object.vertices.len() > 0 && self.winged_edge_vertex_selected < object.vertices.len() {
+        object.highlight_member(MemberType::Vertex, self.winged_edge_vertex_selected);
+      }
+    });
+
+    ui.horizontal(|ui| {
+      ui.label("Edge: ");
+      ui.add(egui::DragValue::new(&mut self.winged_edge_edge_selected).range(0..=object.edges.len()-1).speed(1));
+      if ui.button("Select").clicked() && object.edges.len() > 0 && self.winged_edge_edge_selected < object.edges.len() {
+        object.highlight_member(MemberType::Edge, self.winged_edge_edge_selected);
+      }
+    });
+
+    ui.horizontal(|ui| {
+      ui.label("Face: ");
+      ui.add(egui::DragValue::new(&mut self.winged_edge_face_selected).range(0..=object.faces.len()-1).speed(1));
+      if ui.button("Select").clicked() && object.faces.len() > 0 && self.winged_edge_face_selected < object.faces.len() {
+        object.highlight_member(MemberType::Face, self.winged_edge_face_selected);
+      }
+    });
   }
 
   pub fn draw_winged_edge_creation_options(&mut self, ui: &mut Ui) {

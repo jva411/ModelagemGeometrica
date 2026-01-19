@@ -144,6 +144,7 @@ impl Object for InstancedCube {
   fn get_transform(&self) -> &Transform { &self.transform }
   fn get_transform_mut(&mut self) -> &mut Transform { &mut self.transform }
   fn get_material(&self) -> &Material { &self.material }
+  fn get_material_mut(&mut self) -> &mut Material { &mut self.material }
 
   fn as_any(&self) -> &dyn std::any::Any where Self: Sized { self }
   fn as_any_mut(&mut self) -> &mut dyn std::any::Any where Self: Sized { self }

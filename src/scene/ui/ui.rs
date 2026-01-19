@@ -60,6 +60,10 @@ pub struct UIManager {
   pub selected_boolean_object_id: Option<Uuid>,
 
   pub commands_queue: Vec<UICommand>,
+
+  pub winged_edge_vertex_selected: usize,
+  pub winged_edge_edge_selected: usize,
+  pub winged_edge_face_selected: usize,
 }
 
 impl UIManager {
@@ -74,6 +78,9 @@ impl UIManager {
       boolean_operator: BooleanOperator::UNION,
       selected_boolean_object_id: None,
       commands_queue: Vec::new(),
+      winged_edge_vertex_selected: 0,
+      winged_edge_edge_selected: 0,
+      winged_edge_face_selected: 0,
     }
   }
 }
@@ -220,6 +227,17 @@ impl Window {
       ui.add(egui::DragValue::new(&mut transform.scale.z).speed(0.1));
     });
     ui.separator();
+
+    let material = object.get_material_mut();
+    ui.heading("Material");
+    ui.horizontal(|ui| {
+      ui.label("Diffuse: ");
+      ui.color_edit_button_rgb(&mut material.rgb_diffuse);
+      ui.label("Specular: ");
+      ui.color_edit_button_rgb(&mut material.rgb_specular);
+      ui.label("Shininess: ");
+      ui.add(egui::DragValue::new(&mut material.shininess).speed(0.1));
+    });
 
     if let Some(object) = object.as_octree_object_mut() {
       ui_manager.draw_octree_object_properties(ui, scene, object);
